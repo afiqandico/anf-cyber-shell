@@ -1,0 +1,46 @@
+#!/usr/bin/env zsh
+# ==============================================================================
+# ANF — Unified Menu (Pintu untuk semua shell ANF)
+# Satu perintah `anf` yang memilih shell, tanpa bongkar file FROZEN mana pun.
+#
+#   anf            -> menu interaktif (pilih Research / Cyber)
+#   anf research   -> langsung masuk ANF Research Shell
+#   anf cyber      -> langsung masuk ANF Cyber Shell
+#   anf <cmd>...   -> coba dispatch ke research (default legacy)
+# ==============================================================================
+set -u
+
+_ANF_RESEARCH="${ANF_RESEARCH:-$HOME/.local/bin/anf-research}"
+_ANF_CYBER="${ANF_CYBER:-$HOME/.local/bin/anf-cyber}"
+
+_banner() {
+  print ""
+  print "  ANF — Unified Menu"
+  print "  ──────────────────"
+  print "   1) Research Shell   (anf-research : riset ML/math/reproducible)"
+  print "   2) Cyber Shell      (anf-cyber    : purple-team/C2/recon/defense)"
+  print "   0) Keluar"
+  print ""
+}
+
+case "${1:-}" in
+  research|r|1)
+    shift
+    [[ -x "$_ANF_RESEARCH" ]] && exec zsh "$_ANF_RESEARCH" "$@" \
+      || { print -u2 "anf-research belum terpasang. Jalankan: cd ~/Documents/Projects/ANF-Research-Shell && ./install.sh"; exit 1; }
+    ;;
+  cyber|c|2)
+    shift
+    [[ -x "$_ANF_CYBER" ]] && exec zsh "$_ANF_CYBER" "$@" \
+      || { print -u2 "anf-cyber belum terpasang."; exit 1; }
+    ;;
+  ""|-h|--help)
+    _banner
+    print "  Gunakan:  anf research | anf cyber   (atau anf untuk menu interaktif)"
+    ;;
+  *)
+    # Teruskan sebagai command ke research (compat: anf <cmd> dari launcher lama)
+    [[ -x "$_ANF_RESEARCH" ]] && exec zsh "$_ANF_RESEARCH" "$@" \
+      || { print -u2 "anf-research belum terpasang."; exit 1; }
+    ;;
+esac

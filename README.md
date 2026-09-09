@@ -29,7 +29,16 @@ Jalankan `anf-cyber help` untuk daftar command per kategori; `anf-cyber selftest
 ./install.sh --prefix "$HOME/.local"
 ```
 
-## Penggunaan
+## Penggunaan — satu pintu `anf`
+Setelah setup (lihat di bawah), semua shell ANF diakses lewat **satu menu** `anf`:
+```bash
+anf               # banner menu (Research / Cyber)
+anf research      # masuk ANF Research Shell (ML/math/reproducible) — launcher anf-research
+anf cyber         # masuk ANF Cyber Shell (purple-team/ops)        — launcher anf-cyber
+# anf <cmd>...    # (legacy) dispatch command ke Research Shell
+```
+
+### Cyber Shell langsung (`anf-cyber`)
 ```bash
 anf-cyber                # shell interaktif (ZLE popup + banner)
 anf-cyber help           # daftar command per kategori
@@ -42,6 +51,18 @@ anf-cyber encode hello   # base64
 anf-cyber hash abc       # MD5/SHA256/SHA512
 ```
 Di dalam shell: `/scan`, `/subdomains`, `/c2-start`, `/c2-sessions`, `/osint-email`, `/guardfall-metrics`, dst. (alias `/cmd`).
+
+### Setup launcher unified (Research + Cyber)
+```bash
+# Cyber shell (repo ini)
+./install.sh --prefix "$HOME/.local"          # bin/anf-cyber
+install -m755 bin/anf "$HOME/.local/bin/anf"  # menu pintu unified
+
+# Research shell (repositori FROZEN, TIDAK diubah)
+~/Documents/Projects/ANF-Research-Shell/install.sh --prefix "$HOME/.local"
+install -m755 ~/Documents/Projects/ANF-Research-Shell/bin/anf "$HOME/.local/bin/anf-research"
+```
+`.zshrc` tidak perlu men-source script inti — cukup `export PATH="$HOME/.local/bin:$PATH"`.
 
 ## Verification (gate baseline)
 ```bash
