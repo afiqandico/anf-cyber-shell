@@ -49,7 +49,11 @@ if (( $# == 0 )); then
     if [[ -o interactive ]]; then
         return 0 2>/dev/null  # sudah ter-source di environment parent
     fi
-    exec zsh -i -c "source '$_ANF_LIB'"
+    # Shell interaktif persisten: source lib via ZDOTDIR rc, lalu exec zsh -i.
+    # (zsh -i -c "..." akan langsung exit setelah command; harus pakai rc.)
+    _anf_tmp_rc="$(mktemp -d)"
+    print -r -- "source '$_ANF_LIB'" > "$_anf_tmp_rc/.zshrc"
+    ZDOTDIR="$_anf_tmp_rc" exec zsh -i
     exit 0
 fi
 
