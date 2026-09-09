@@ -39,7 +39,7 @@ path=("$HOME/.local/bin" "$HOME/bin" "$HOME/go/bin" "$HOME/.cargo/bin" \
       "/opt/homebrew/sbin" "/usr/local/bin" "/snap/bin" $path)
 [[ -d "$HOME/.opencode/bin" ]] && path=("$HOME/.opencode/bin" $path)
 
-typeset -g AF_LOG_FILE="$ANF_CACHE_DIR/logs/anf.log"
+typeset -g AF_LOG_FILE="$ANF_CACHE_DIR/logs/anf-cyber.log"
 typeset -g AF_LOG_LEVEL="${AF_LOG_LEVEL:-INFO}"
 typeset -gA _ANF_LOG_RANK=(DEBUG 0 INFO 1 WARN 2 ERR 3 OK 1)
 
@@ -1743,7 +1743,7 @@ anf_screenshot_all() {
 
 anf_clear_logs() {
   [[ -z "$T" ]] && { _anf_log err "Target not set"; return 1; }
-  _anf_log warn "Clearing logs on $T (simulated)..."; print > "$ANF_CACHE_DIR/logs/anf.log"; print > "$AF_LOG_FILE"; _anf_log ok "Logs cleared locally"
+  _anf_log warn "Clearing logs on $T (simulated)..."; print > "$ANF_CACHE_DIR/logs/anf-cyber.log"; print > "$AF_LOG_FILE"; _anf_log ok "Logs cleared locally"
 }
 
 # ---------------------------------------------------------------------
