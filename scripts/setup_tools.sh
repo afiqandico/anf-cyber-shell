@@ -3,10 +3,11 @@
 # ANF CYBER SHELL — Setup Tools (jalankan SEKALI oleh user, dengan sudo)
 # Menginstall tool cyber yang hilang dari doctor /anf-cyber:
 #   apt  : amass, yara, rlwrap, suricata
-#   pip  : holehe (user-level, tanpa sudo)
-# Aman: idempotent (skip yang sudah ada), menampilkan tiap perintah sebelum
-# eksekusi. Jalankan:  bash scripts/setup_tools.sh
-# (Butuh sudo utk paket apt; sesi Hermes TIDAK bisa — jalankan di terminal kamu.)
+#   pipx : holehe (otomatis, terisolasi; sudah dipasang)
+# Aman: idempotent (skip yang sudah ada), menampilkan perintah sebelum eksekusi.
+# Jalankan:  bash scripts/setup_tools.sh
+# (apt butuh sudo → jalankan perintah yang ditampilkan di terminal kamu sendiri;
+#  sesi Hermes non-interaktif TIDAK bisa sudo karena butuh password.)
 # ==============================================================================
 set -uo pipefail
 
@@ -21,23 +22,22 @@ for t in amass yara rlwrap suricata; do
 done
 if (( ${#apt_needed[@]} > 0 )); then
   echo "==> Install apt: ${apt_needed[*]}"
-  echo "    Perintah:  sudo apt-get update && sudo apt-get install -y ${apt_needed[*]}"
-  # TIDAK auto-run sudo (butuh password). User jalankan manual.
-  echo "    JALANKAN SENDIRI di terminal (butuh sudo):"
+  echo
+  echo "    JALANKAN SENDIRI di terminal kamu (butuh sudo):"
   echo "      sudo apt-get update"
   echo "      sudo apt-get install -y ${apt_needed[*]}"
+  echo
 else
   echo "==> Semua tool apt sudah ada."
 fi
 
-# --- holehe (pip user-level, tanpa sudo) -----------------------------------------
+# --- holehe (pipx user-level, tanpa sudo) ---------------------------------------
 if check holehe; then
   echo "==> holehe sudah ada."
 else
-  echo "==> Install holehe (pip user-level, tanpa sudo):"
-  echo "      python3 -m pip install --user holehe"
+  echo "==> Install holehe (pipx, venv terisolasi, tanpa sudo):"
+  echo "      pipx install holehe"
 fi
 
 echo
-echo "Selesai merinci. Jalankan perintah sudo di atas di terminal kamu,"
-echo "lalu verifikasi dengan:  anf-cyber doctor"
+echo "Selesai. Setelah jalankan perintah sudo, verifikasi dengan:  anf-cyber doctor"
