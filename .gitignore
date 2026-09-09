@@ -1,0 +1,17 @@
+# ANF Cyber Shell — gitignore
+# Artefak runtime & hasil scanning/target tidak di-track (lokal saja)
+__pycache__/
+*.pyc
+.venv/
+
+# Runtime
+*.log
+*.tmp
+.cache/
+
+# Hasil operasi cyber (scans, targets, payloads, osint) — sensitif, lokal
+research/outputs/*.txt
+research/outputs/*.json
+research/outputs/*.csv
+research/outputs/*.png
+!research/outputs/reproducibility_manifest.md

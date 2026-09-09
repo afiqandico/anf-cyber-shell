@@ -1,0 +1,30 @@
+# ==============================================================================
+# ANF CYBER SHELL — Konfigurasi (dist)
+# Salin ke ~/.config/anf-cyber/anfrc lalu sesuaikan. Dibaca oleh bin/anf-cyber
+# saat launch. Semua variabel memakai prefix ANF_ dan di-import ke environment.
+# ==============================================================================
+
+# --- Workspace default ---------------------------------------------------------
+# ANF_WS="general"
+
+# --- Logging -------------------------------------------------------------------
+# ANF_LOG_LEVEL="info"            # debug | info | warn | error
+# ANF_LOG_FILE="$HOME/.cache/anf-cyber/logs/anf-cyber.log"
+
+# --- Keamanan / OPSEC ------------------------------------------------------------
+# ANF_PANIC_CLEAR_HIST="1"        # panic juga membersihkan history file (default aman: 0)
+
+# --- Network ---------------------------------------------------------------------
+# ANF_PROXY=""                    # contoh: http://127.0.0.1:8080 (dipakai serve/check-ip)
+# ANF_TIMEOUT_SEC="15"            # timeout default command jaringan
+
+# --- Path tool eksternal ----------------------------------------------------------
+# ANF_NMAP_BIN="$(command -v nmap)"
+# ANF_GOBUSTER_BIN="$(command -v gobuster)"
+
+# --- OSINT ------------------------------------------------------------------------
+# HUNTER_API_KEY=""               # optional: hunter.io email verifier utk /osint-email
+
+# --- Penelitian / Reproduksibilitas (C2 detection analytics) -----------------------
+# ANF_RESEARCH_DIR="$HOME/Documents/ANF-Cyber-Shell/research/outputs"
+# ANF_SEED="42"                   # seed tetap untuk eksperimen ML reproducible
