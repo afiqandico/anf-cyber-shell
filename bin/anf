@@ -4,9 +4,10 @@
 # Satu perintah `anf` yang memilih shell, tanpa bongkar file FROZEN mana pun.
 #
 #   anf            -> menu interaktif (pilih Research / Cyber)
-#   anf research   -> langsung masuk ANF Research Shell
-#   anf cyber      -> langsung masuk ANF Cyber Shell
-#   anf <cmd>...   -> coba dispatch ke research (default legacy)
+#   anf research   -> langsung MASUK ANF Research Shell (interaktif, ZLE popup)
+#   anf cyber      -> langsung MASUK ANF Cyber Shell  (interaktif, ZLE popup)
+#   anf research <cmd>  -> dispatch command tunggal (non-interaktif)
+#   anf cyber    <cmd>  -> dispatch command tunggal (non-interaktif)
 # ==============================================================================
 set -u
 
@@ -24,23 +25,24 @@ _banner() {
 }
 
 case "${1:-}" in
-  research|r|1)
+  research|r|1|cyber|c|2)
+    # Pilih launcher berdasarkan nama
+    local _launcher=""
+    [[ "${1:-}" == research || "${1:-}" == r || "${1:-}" == 1 ]] && _launcher="$_ANF_RESEARCH"
+    [[ "${1:-}" == cyber || "${1:-}" == c || "${1:-}" == 2 ]] && _launcher="$_ANF_CYBER"
+    [[ -x "$_launcher" ]] || { print -u2 "launcher tidak ditemukan: $_launcher"; exit 1; }
     shift
-    [[ -x "$_ANF_RESEARCH" ]] && exec zsh "$_ANF_RESEARCH" "$@" \
-      || { print -u2 "anf-research belum terpasang. Jalankan: cd ~/Documents/Projects/ANF-Research-Shell && ./install.sh"; exit 1; }
-    ;;
-  cyber|c|2)
-    shift
-    [[ -x "$_ANF_CYBER" ]] && exec zsh "$_ANF_CYBER" "$@" \
-      || { print -u2 "anf-cyber belum terpasang."; exit 1; }
+    # Tanpa argumen -> launcher handle mode interaktif sendiri (exec zsh -i).
+    # Dengan argumen -> dispatch command tunggal.
+    exec "$_launcher" "$@"
     ;;
   ""|-h|--help)
     _banner
     print "  Gunakan:  anf research | anf cyber   (atau anf untuk menu interaktif)"
     ;;
   *)
-    # Teruskan sebagai command ke research (compat: anf <cmd> dari launcher lama)
-    [[ -x "$_ANF_RESEARCH" ]] && exec zsh "$_ANF_RESEARCH" "$@" \
+    # Legacy: teruskan sebagai command ke research shell
+    [[ -x "$_ANF_RESEARCH" ]] && exec "$_ANF_RESEARCH" "$@" \
       || { print -u2 "anf-research belum terpasang."; exit 1; }
     ;;
 esac

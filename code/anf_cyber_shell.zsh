@@ -2005,7 +2005,7 @@ anf_help() {
         local cat="${entry%%:*}" cmds="${entry#*:}"
         print "\n  ${BOLD}${C_M}── ${cat} ──${C_0}"
         for cmd in ${(s: :)cmds}; do
-            printf "    %s/%-24s%s %s%s%s\n" \
+            printf "    %s%-24s%s %s%s%s\n" \
                 "$C_A" "$cmd" "$C_0" \
                 "$C_T" "${_ANF_CMD_DESC[$cmd]}" "$C_0"
         done
@@ -2013,10 +2013,16 @@ anf_help() {
     print ""
 }
 
-# Alias /cmd -> fungsi (dibuat DI SINI, setelah semua fungsi command ada).
+# Alias command -> fungsi (dibuat DI SINI, setelah semua fungsi command ada).
+# CATATAN: alias dengan prefix "/" TIDAK bekerja di zsh (zsh perlakukan /cmd sbg
+# path). Daftarkan juga nama polos (help -> anf_help, scan -> anf_scan, dst.)
+# supaya bisa dipanggil di shell interaktif tanpa slash.
 for _cmd in "${_ANF_CMD_NAMES[@]}"; do
     _func="anf_${_cmd//-/_}"
-    (( ${+functions[$_func]} )) && alias "/$_cmd"="$_func"
+    if (( ${+functions[$_func]} )); then
+        alias "/$_cmd"="$_func"
+        alias "$_cmd"="$_func"
+    fi
 done
 unset _cmd _func
 
@@ -2142,14 +2148,14 @@ ${C_G}[✓] GuardFall v2  — Unicode normalization, TP/FP/F1 metrics
 [✓] Analytics     — Shannon CI, Chi-Square, Isolation Forest, ROC
 [✓] Defense       — Suricata, Yara, Honeypot, Wazuh
 [✓] Session       — $(date +%H:%M:%S)
-${C_T}Type /help for all commands.${C_0}
+${C_T}Type 'help' for all commands (atau anf-cyber help).${C_0}
 BANNER
     trap - INT
     PROMPT="%F{#5C4A1E}┌──%f(%F{#DD8E35}%n%f%F{#5C4A1E}@%f%F{#FFAA44}%m%f)-[%F{#F5E6D0}%~%f]"$'\n'"%(?.%F{#66BB6A}◎ ❯ %f.%F{#EF5350}✘ ❯ %f)"
 }
 
 if [[ $- == *i* ]]; then anf_banner; fi
-_anf_log ok "ANF v${ANF_VERSION} loaded. Type /help"
+_anf_log ok "ANF v${ANF_VERSION} loaded. Type 'help'"
 
 # ==============================================================================
 # SECTION 13 — Tool Integrations (Auto-generated)
