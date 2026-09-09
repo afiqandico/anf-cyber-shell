@@ -435,7 +435,7 @@ anf_doctor() {
     local -a tools=(
         curl wget nmap ffuf subfinder httpx jq nc python3 git dig
         amass gobuster nikto suricata yara fzf tmux holehe nuclei
-        rlwrap shlex  # python3 module check nanti
+        rlwrap  # shlex dicek sbg modul python (bukan binary CLI)
     )
     local -a missing=()
     for tool in "${tools[@]}"; do
@@ -443,6 +443,13 @@ anf_doctor() {
             && _anf_log ok "$tool" \
             || { _anf_log err "$tool MISSING"; missing+=("$tool"); }
     done
+    # shlex = modul python stdlib, bukan binary — cek via python
+    if python3 -c 'import shlex' >/dev/null 2>&1; then
+        _anf_log ok "shlex (python module)"
+    else
+        _anf_log err "shlex MISSING"
+        missing+=(shlex)
+    fi
     (( ${#missing} > 0 )) && \
         _anf_log warn "Missing tools: ${missing[*]}"
 }
