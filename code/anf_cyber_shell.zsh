@@ -1,8 +1,9 @@
 #!/usr/bin/env zsh
 # ==============================================================================
-# ANF CYBER SHELL v${ANF_VERSION}
-# PURPLE-TEAM OPERATIONS: C2 FRAMEWORK + RECON + OSINT + EXPLOIT + DEFENSE +
-# GUARDFALL SECURITY ENGINE + C2-DETECTION ANALYTICS (entropy / Isolation Forest / beacon-math)
+# ANF SHELL v${ANF_VERSION} — Cyber + Research (merged)
+# PURPLE-TEAM: C2 + Recon + OSINT + Exploit + Defense + GuardFall + Deteksi C2
+# RESEARCH: math/ML/reproducible (stat calc sym plot mlbench dlcheck bib csv)
+
 
 
 if [[ -n "${ANF_LOADED:-}" ]]; then return 0; fi
@@ -1873,6 +1874,712 @@ anf_sysinfo() {
 # ---------------------------------------------------------------------
 
 
+# ==============================================================================
+# SECTION — Research Suite (merged from ANF Research Shell, source FROZEN untouched)
+# ==============================================================================
+export ANF_RESEARCH_DIR="${ANF_RESEARCH_DIR:-$HOME/Documents/ANF-Cyber-Shell/research/outputs}"
+export ANF_SEED="${ANF_SEED:-42}"
+typeset -ga _ANF_REQUIRED_TOOLS=(
+    "git:git:git:git:git:1"
+    "tmux:tmux:tmux:tmux:tmux:1"
+    "curl:curl:curl:curl:curl:1"
+    "wget:wget:wget:wget:wget:1"
+    "python3:python3:python3:python3:python3:1"
+    "btop:btop:btop:btop:btop:0"
+    "jq:jq:jq:jq:jq:0"
+    "ripgrep:ripgrep:ripgrep:ripgrep:ripgrep:0"
+    "nmap:nmap:nmap:nmap:nmap:0"
+)
+
+# -----------------------------------------------------------------------------
+anf_why() {
+    print "${C_M}── ANF RESEARCH SHELL — Integrated & Reproducible Research Workbench ──${C_0}"
+    print ""
+    print "${BOLD}Positioning: semua pekerjaan peneliti (science, math, computer science) dalam satu terminal yang reproducible.${C_0}"
+    print ""
+    print "${C_G}Science & Math${C_0}     — /stat /calc /sym /plot (statistik, kalkulasi, simbolik, visualisasi)"
+    print "${C_G}ML / DL / Eval${C_0}    — /mlinfo /mlbench /dlcheck /sha /exp /csv /bib /paperstat /dataset"
+    print "${C_G}Reproducible${C_0}      — seed deterministik, manifest, 25-test, output ke research/outputs/"
+    print "${C_G}Rapi & Self-contained${C_0} — /ensure auto-install tool Linux, installer, git, docs"
+    print ""
+    print "${C_T}Berbeda dari terminal lain: bukan sekadar shell — ini workbench riset yang hasilnya terukur dan tertelusur.${C_0}"
+    print ""
+}
+
+# -----------------------------------------------------------------------------
+# /gen — AI-assisted code generation (via Hermes/opencode bila ada)
+# /gen <prompt>     -> celah: generate draft kode dari deskripsi
+# -----------------------------------------------------------------------------
+anf_gen() {
+    local prompt="${*:-}"
+    if [[ -z "$prompt" ]]; then
+        _anf_log warn "Usage: /gen <deskripsi kode yang mau dibuat>"
+        return 1
+    fi
+    if command -v hermes >/dev/null 2>&1; then
+        _anf_log info "Memanggil hermes untuk: $prompt"
+        hermes "$prompt"
+        return $?
+    fi
+    if command -v opencode >/dev/null 2>&1; then
+        _anf_log info "Memanggil opencode untuk: $prompt"
+        opencode "$prompt"
+        return $?
+    fi
+    _anf_log err "Tidak ada AI CLI (hermes/opencode) di PATH. Install salah satunya."
+    return 1
+}
+
+# -----------------------------------------------------------------------------
+# /task — orchestrator: jalankan task di tmux session latar (survive restart)
+# /task start <nama> "<cmd>"  /task list  /task attach <nama>
+# -----------------------------------------------------------------------------
+anf_task() {
+    local action="${1:-}"; shift 2>/dev/null
+    case "$action" in
+        start)
+            local name="${1:-task}"; shift
+            local cmd="$*"
+            if [[ -z "$cmd" ]]; then _anf_log warn "Usage: /task start <nama> \"<cmd>\""; return 1; fi
+            if ! command -v tmux >/dev/null 2>&1; then _anf_log err "tmux tidak ada (sudo apt install tmux)"; return 1; fi
+            if tmux has-session -t "$name" 2>/dev/null; then
+                _anf_log warn "Session $name sudah ada — attach saja."
+                tmux attach-session -t "$name" 2>/dev/null
+                return 0
+            fi
+            tmux new-session -d -s "$name" "$cmd"
+            _anf_log ok "Task '$name' jalan di tmux (survive restart). Attach: /task attach $name"
+            ;;
+        list)
+            tmux ls 2>/dev/null || _anf_log info "Tidak ada session tmux"
+            ;;
+        attach)
+            local name="${1:-}"
+            [[ -z "$name" ]] && { _anf_log warn "Usage: /task attach <nama>"; return 1; }
+            tmux attach-session -t "$name" 2>/dev/null || _anf_log err "Session $name tidak ada"
+            ;;
+        kill)
+            local name="${1:-}"
+            [[ -z "$name" ]] && { _anf_log warn "Usage: /task kill <nama>"; return 1; }
+            tmux kill-session -t "$name" 2>/dev/null && _anf_log ok "Session $name ditutup" \
+                || _anf_log err "Gagal tutup $name"
+            ;;
+        *) _anf_log warn "Usage: /task [start|list|attach|kill]"; return 1;;
+    esac
+}
+
+# -----------------------------------------------------------------------------
+# /q — pencarian cepat dalam project (grep + tree + file)
+# /q <pattern> [dir]   -> grep -rn, warnai, skip .git/node_modules
+# -----------------------------------------------------------------------------
+anf_q() {
+    local pattern="${1:-}"; local dir="${2:-.}"
+    if [[ -z "$pattern" ]]; then _anf_log warn "Usage: /q <pattern> [dir]"; return 1; fi
+    if [[ ! -d "$dir" ]]; then _anf_log err "Dir tidak ada: $dir"; return 1; fi
+    command grep -rn --color=always --exclude-dir=.git --exclude-dir=node_modules \
+        --exclude-dir=venv --exclude-dir=.venv --exclude-dir=__pycache__ \
+        "$pattern" "$dir" 2>/dev/null | head -50 || _anf_log info "Tidak ada match"
+}
+
+# -----------------------------------------------------------------------------
+# /gitx — git quick-ops harian
+# /gitx s (status) | a (add-all) | c <msg> (commit) | l (log) | b (branch) | p (pull)
+# -----------------------------------------------------------------------------
+anf_gitx() {
+    local op="${1:-s}"
+    case "$op" in
+        s) git status -sb 2>&1 ;;
+        a) git add -A && echo "staged" ;;
+        c) shift; git commit -m "$*" 2>&1 ;;
+        l) git log --oneline -15 2>&1 ;;
+        b) git branch -a 2>&1 ;;
+        p) git pull --ff-only 2>&1 ;;
+        d) git diff --stat 2>&1 ;;
+        x) git add -A && git commit -m "wip: $(date +%Y%m%d_%H%M)" 2>&1 && echo "committed wip" ;;
+        *) _anf_log warn "Usage: /gitx [s|a|c <msg>|l|b|p|d|x]"; return 1;;
+    esac
+}
+
+# -----------------------------------------------------------------------------
+# /envcard — ringkasan environment/system dalam sekali lihat
+# -----------------------------------------------------------------------------
+anf_envcard() {
+    print "${C_M}── OS ──${C_0}";     uname -srm
+    print "${C_M}── Uptime ──${C_0}"; uptime | sed 's/^ *//'
+    print "${C_M}── Disk root ──${C_0}"; df -h / | tail -1 | awk '{print "  used "$3" of "$2" ("$5")"}'
+    print "${C_M}── Mem ──${C_0}";     free -h | awk '/Mem:/{print "  used "$3" of "$2" ("$3/$2")"}'
+    print "${C_M}── Tools ──${C_0}"
+    local t; local -a tools=(git tmux docker python3 node hermes opencode)
+    for t in "${tools[@]}"; do
+        if command -v "$t" >/dev/null 2>&1; then print "  ✓ $t"; else print "  ✗ $t (tidak ada)"; fi
+    done
+}
+
+# -----------------------------------------------------------------------------
+# /mvp — multi-version & branch mgmt
+# /mvp (tag current) | v (versi shell) | b <name> (branch baru) | s <name> (switch)
+# -----------------------------------------------------------------------------
+anf_mvp() {
+    local op="${1:-}"; shift 2>/dev/null
+    case "$op" in
+        tag) local t="${1:-v$(date +%Y%m%d)}"; git tag "$t" 2>&1 && echo "tagged $t" ;;
+        v)   echo "ANF_VERSION=$ANF_VERSION (zsh $ZSH_VERSION)" ;;
+        b)   git checkout -b "$1" 2>&1 ;;
+        s)   git checkout "$1" 2>&1 ;;
+        l)   git tag --sort=-creatordate 2>&1 | head -15 ;;
+        *)   _anf_log warn "Usage: /mvp [tag <t>|v|b <name>|s <name>|l]"; return 1;;
+    esac
+}
+
+# -----------------------------------------------------------------------------
+# Registrasi command enterprise (dijalankan di akhir — tetap sesudah definisi).
+# -----------------------------------------------------------------------------
+_ANF_CMD_DESC+=( \
+    gen     "AI-assisted code generation (# calls hermes/opencode)" \
+    task    "Orchestrator task di tmux latar (survive restart)" \
+    q       "Pencarian cepat grep dalam project" \
+    gitx    "Git quick-ops harian (status/add/commit/log/branch/pull)" \
+    envcard "Ringkasan environment & tools sekali lihat" \
+    mvp     "Multi-version & branch management" \
+    why     "Value proposition ANF (mengapa bukan terminal lain)" \
+)
+typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
+for _cmd in gen task q gitx envcard mvp why; do
+    _func="anf_${_cmd//-/_}"
+    (( ${+functions[$_func]} )) && alias "/$_cmd"="$_func"
+done
+unset _cmd _func
+# ==============================================================================
+# SECTION 14 — ANF Research Suite (untuk peneliti: science, math, CS, cyber)
+# Fokus audiens: researcher yang butuh statistik, ML/DL reproducible,
+# benchmark, katalog dataset, dan navigasi cyber (MITRE) dari satu antarmuka.
+# Python dipakai dari venv riset bila ada (torch/sklearn/numpy), fallback python3.
+# ==============================================================================
+
+# Locate best python (repo-local .venv dulu, lalu venv riset $HOME, fallback python3)
+_anf_py() {
+    if [[ -n "${PYTHON:-}" && -x "${PYTHON:-}" ]]; then
+        print -r -- "${PYTHON:-}"
+    elif [[ -x "$HOME/venv/bin/python" ]]; then
+        print -r -- "$HOME/venv/bin/python"
+    elif [[ -x "$HOME/Documents/ANF-Research-Shell/.venv/bin/python" ]]; then
+        print -r -- "$HOME/Documents/ANF-Research-Shell/.venv/bin/python"
+    else
+        print -r -- "python3"
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# /mlinfo — cek stack ML/DL tersedia (peneliti butuh tahu lingkungan)
+# -----------------------------------------------------------------------------
+anf_mlinfo() {
+    local py; py="$(_anf_py)"
+    print "${C_M}── ML/DL Stack ──${C_0}"
+    print "  Python : $("$py" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo 'n/a')"
+    print "  numpy  : $("$py" -c 'import numpy; print(numpy.__version__)' 2>/dev/null || echo 'TIDAK ADA')"
+    print "  sklearn: $("$py" -c 'import sklearn; print(sklearn.__version__)' 2>/dev/null || echo 'TIDAK ADA')"
+    print "  torch  : $("$py" -c 'import torch; print(torch.__version__, "cuda=" + str(torch.cuda.is_available()))' 2>/dev/null || echo 'TIDAK ADA')"
+    print "${C_T}Catatan: CUDA=False → DL jalan CPU-only (lambat untuk model besar; cukup untuk smoke/uji kecil).${C_0}"
+}
+
+# -----------------------------------------------------------------------------
+# /stat — statistik dataset numerik dari file/pipe (satu kolom per baris)
+# /stat <file> [col]  |  echo "1 2 3" | anf stat
+# -----------------------------------------------------------------------------
+anf_stat() {
+    local file="${1:-/dev/stdin}"; local col="${2:-1}"
+    if [[ "$file" != "/dev/stdin" && ! -f "$file" ]]; then _anf_log err "File tidak ada: $file"; return 1; fi
+    local py; py="$(_anf_py)"
+    "$py" - "$file" "$col" <<'PYEOF'
+import sys, math
+from collections import Counter
+fn, col = sys.argv[1], int(sys.argv[2])
+vals = []
+with open(fn, 'r', errors='replace') as fh:
+    for line in fh:
+        parts = line.split()
+        if len(parts) >= col:
+            try: vals.append(float(parts[col-1]))
+            except ValueError: pass
+if not vals:
+    print("tidak ada data numerik"); sys.exit(1)
+n = len(vals); mu = sum(vals)/n
+s2 = sum((x-mu)**2 for x in vals)/(n-1) if n > 1 else 0.0
+sd = math.sqrt(s2)
+cnt = Counter(vals)
+ent = -sum((v/n)*math.log2(v/n) for v in cnt.values()) if n else 0.0
+sv = sorted(vals)
+med = sv[n//2] if n % 2 else (sv[n//2-1]+sv[n//2])/2
+print(f"n      = {n}")
+print(f"min    = {min(vals):.6g}")
+print(f"max    = {max(vals):.6g}")
+print(f"mean   = {mu:.6g}")
+print(f"median = {med:.6g}")
+print(f"std    = {sd:.6g}")
+print(f"entropy= {ent:.6g} bits")
+PYEOF
+}
+
+# -----------------------------------------------------------------------------
+# /mlbench — benchmark deterministik: baseline entropy-threshold vs IsolationForest
+# /mlbench <n> [out.csv]  -> hasil ditulis ke research/outputs bila out.csv
+# -----------------------------------------------------------------------------
+anf_mlbench() {
+    local n="${1:-400}" out="${2:-}"
+    local py; py="$(_anf_py)"
+    if [[ -z "$out" ]]; then
+        local dir="${ANF_RESEARCH_DIR:-$HOME/Documents/ANF-Research-Shell/research/outputs}"
+        out="$dir/mlbench_$(date +%Y%m%d_%H%M%S).csv"
+        mkdir -p "$(dirname "$out")"
+    fi
+    print "${C_M}── MLBench (seed=42, deterministic) — n=$n ──${C_0}"
+    "$py" - "$n" "$out" <<'PYEOF'
+import sys, random, csv, math
+from collections import Counter
+n = int(sys.argv[1]); out = sys.argv[2]
+random.seed(42)
+def entropy(s):
+    if not s: return 0.0
+    c = Counter(s); l = len(s)
+    return -sum((v/l)*math.log2(v/l) for v in c.values())
+def gen(n):
+    X, y = [], []
+    for _ in range(n//4):
+        X.append(entropy(''.join(random.choices('abcdefghijklmnopqrstuvwxyz ', k=200)))); y.append(0)
+    for _ in range(n//4):
+        b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+        X.append(entropy(''.join(random.choices(b, k=200)))); y.append(0)
+    for _ in range(n//2):
+        X.append(entropy(''.join(chr(random.randint(0,255)) for _ in range(200)))); y.append(1)
+    return X, y
+X, y = gen(n)
+# baseline: threshold entropy sweep
+best_f1, best_t = 0, 0
+for t100 in range(300, 800, 5):
+    t = t100/100
+    preds = [1 if s > t else 0 for s in X]
+    tp = sum(1 for p,l in zip(preds,y) if p==1 and l==1)
+    fp = sum(1 for p,l in zip(preds,y) if p==1 and l==0)
+    fn = sum(1 for p,l in zip(preds,y) if p==0 and l==1)
+    pr = tp/(tp+fp) if tp+fp else 0; rc = tp/(tp+fn) if tp+fn else 0
+    f1 = 2*pr*rc/(pr+rc) if pr+rc else 0
+    if f1 > best_f1: best_f1, best_t = f1, t
+# IsolationForest
+iso_preds = []
+try:
+    from sklearn.ensemble import IsolationForest
+    import numpy as np
+    Xa = np.array(X).reshape(-1, 1)
+    random.seed(42)
+    clf = IsolationForest(n_estimators=50, contamination=0.5, random_state=42).fit(Xa)
+    p = clf.predict(Xa)  # -1 = outlier
+    iso_preds = [1 if v == -1 else 0 for v in p]
+    tp = sum(1 for p_,l in zip(iso_preds,y) if p_==1 and l==1)
+    fp = sum(1 for p_,l in zip(iso_preds,y) if p_==1 and l==0)
+    fn = sum(1 for p_,l in zip(iso_preds,y) if p_==0 and l==1)
+    pr = tp/(tp+fp) if tp+fp else 0; rc = tp/(tp+fn) if tp+fn else 0
+    iso_f1 = 2*pr*rc/(pr+rc) if pr+rc else 0.0
+    iso_ok = True
+except Exception as e:
+    iso_f1 = float('nan'); iso_ok = False; err = str(e)
+with open(out, 'w', newline='') as fh:
+    w = csv.writer(fh)
+    w.writerow(['model','f1','threshold','sklearn_available'])
+    w.writerow(['entropy-baseline', round(best_f1,4), best_t, 'true'])
+    w.writerow(['isolation-forest', round(iso_f1,4), 'na', str(iso_ok).lower()])
+print(f"  entropy-baseline F1={best_f1:.4f}  (threshold H>{best_t:.2f})")
+if iso_ok: print(f"  isolation-forest F1={iso_f1:.4f}  (n_est=50, seed=42)")
+else:      print(f"  isolation-forest: sklearn tidak tersedia — {err}")
+print(f"  hasil -> {out}")
+PYEOF
+}
+
+# -----------------------------------------------------------------------------
+# /dlcheck — smoke test DL CPU (torch forward pass kecil, deterministik)
+# /dlcheck            -> ringkas;  /dlcheck full  -> trein 3 epoch mini
+# -----------------------------------------------------------------------------
+anf_dlcheck() {
+    local mode="${1:-quick}"
+    local py; py="$(_anf_py)"
+    if [[ "$mode" == "full" ]]; then
+        print "${C_M}── DL check (full: mini-MLP 3 epoch on synthetic) ──${C_0}"
+        "$py" - <<'PYEOF'
+import random, math
+try:
+    import torch, torch.nn as nn
+except ImportError:
+    print("torch TIDAK tersedia — DL check skipped"); raise SystemExit(0)
+torch.manual_seed(42); random.seed(42)
+X = torch.rand(256, 8); y = (X.sum(1) > 4).float().view(-1,1)
+net = nn.Sequential(nn.Linear(8,16), nn.ReLU(), nn.Linear(16,1))
+opt = torch.optim.Adam(net.parameters(), lr=0.01); lossf = nn.BCEWithLogitsLoss()
+for ep in range(3):
+    opt.zero_grad(); out = net(X)
+    loss = lossf(out, y); loss.backward(); opt.step()
+    if ep == 0 or ep == 2:
+        acc = ((out > 0).float() == y).float().mean().item()
+        print(f"  epoch {ep+1}: loss={loss.item():.4f} acc={acc:.4f}")
+print("  DL CPU smoke test OK (deterministik, seed=42)")
+PYEOF
+    else
+        "$py" - <<'PYEOF'
+try:
+    import torch
+except ImportError:
+    print("torch TIDAK tersedia"); raise SystemExit(0)
+torch.manual_seed(42)
+x = torch.randn(4, 4); y = x @ x.T
+print(f"  torch {torch.__version__} | matmul ok, shape={tuple(y.shape)} | cuda={torch.cuda.is_available()}")
+PYEOF
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# /dataset — registry dataset riset (lokasi, kelas, tahun) — edit manual
+# -----------------------------------------------------------------------------
+anf_dataset() {
+    local action="${1:-list}"
+    local defs="$ANF_CACHE_DIR/datasets.tsv"
+    case "$action" in
+        list)
+            if [[ -f "$defs" ]]; then
+                print "${C_M}── Dataset registry (${defs}) ──${C_0}"
+                column -t -s $'\t' "$defs" 2>/dev/null || cat "$defs"
+            else
+                print "${C_T}Belum ada registry. Tambah: /dataset add <nama> <path> <kelas>${C_0}"
+            fi ;;
+        add)
+            local name="${2:-}" pth="${3:-}" cls="${4:-}"
+            [[ -z "$name" || -z "$pth" ]] && { _anf_log warn "Usage: /dataset add <nama> <path> <kelas>"; return 1; }
+            mkdir -p "$(dirname "$defs")"
+            if [[ ! -f "$defs" ]]; then
+                print "nama\tpath\tkelas" > "$defs.tmp"
+            else
+                cp "$defs" "$defs.tmp"
+            fi
+            print "$name\t$pth\t${cls:-?}" >> "$defs.tmp"
+            mv "$defs.tmp" "$defs"
+            _anf_log ok "Dataset '$name' ditambahkan" ;;
+        *) _anf_log warn "Usage: /dataset [list|add]"; return 1;;
+    esac
+}
+
+# -----------------------------------------------------------------------------
+# /paperstat — statistik manuskrip (kata/baris/ref/fitur) untuk peneliti
+# /paperstat <file.md|tex>
+# -----------------------------------------------------------------------------
+anf_paperstat() {
+    local f="${1:-}"
+    [[ -z "$f" || ! -f "$f" ]] && { _anf_log warn "Usage: /paperstat <file.md|tex>"; return 1; }
+    local words lines refs
+    words=$(wc -w < "$f" | tr -d ' ')
+    lines=$(wc -l < "$f" | tr -d ' ')
+    refs=$(grep -icE "\\\\cite\{|^#+ .*\[[0-9]+\]|\[\^?[0-9]+\]" "$f" 2>/dev/null || true)
+    print "${C_M}── Paper statistics: $(basename "$f") ──${C_0}"
+    print "  kata  : $words"
+    print "  baris : $lines"
+    print "  rujukan matches (estimasi): $refs"
+    print "  ukuran: $(du -h "$f" | cut -f1)"
+}
+
+# -----------------------------------------------------------------------------
+# Registrasi command research/science
+# -----------------------------------------------------------------------------
+_ANF_CMD_DESC+=( \
+    mlinfo   "Cek stack ML/DL (torch/sklearn/numpy/CUDA)" \
+    stat     "Statistik dataset numerik (mean/median/std/entropy)" \
+    mlbench  "Benchmark deterministik baseline vs IsolationForest -> CSV" \
+    dlcheck  "Smoke test DL CPU (torch, deterministic)" \
+    matrix   "Mapping command ANF ke MITRE ATT&CK tactics" \
+    dataset  "Registry dataset riset (list/add)" \
+    paperstat "Statistik manuskrip (kata/baris/ref)" \
+)
+typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
+for _cmd in mlinfo stat mlbench dlcheck matrix dataset paperstat; do
+    _func="anf_${_cmd//-/_}"
+    (( ${+functions[$_func]} )) && alias "/$_cmd"="$_func"
+done
+unset _cmd _func
+
+# ==============================================================================
+# SECTION 15 — ANF Researcher Workflow v1.4
+# Melengkapi riset via terminal: visualisasi, kalkulasi, reproduksibilitas,
+# data wrangling, bibliografi. Python dari venv riset bila ada.
+# ==============================================================================
+
+# -----------------------------------------------------------------------------
+# /plot — visualisasi data cepat (histogram/scatter/line) -> PNG research/outputs
+# /plot <file.csv> [col] [hist|scatter|line] [title]
+# -----------------------------------------------------------------------------
+anf_plot() {
+    local file="${1:-}"; local col="${2:-1}" kind="${3:-hist}" title="${4:-ANF plot}"
+    [[ -z "$file" || ! -f "$file" ]] && { _anf_log warn "Usage: /plot <file.csv> [col] [hist|scatter|line] [title]"; return 1; }
+    local py; py="$(_anf_py)"
+    local dir="${ANF_RESEARCH_DIR:-$HOME/Documents/ANF-Research-Shell/research/outputs}"
+    mkdir -p "$dir"
+    local out="$dir/plot_$(basename "$file" .csv)_$(date +%Y%m%d_%H%M%S).png"
+    "$py" - "$file" "$col" "$kind" "$title" "$out" <<'PYEOF'
+import sys
+file, col, kind, title, out = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5]
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import pandas as pd
+except ImportError:
+    print("matplotlib/pandas tidak tersedia di venv"); sys.exit(1)
+try:
+    df = pd.read_csv(file)
+except Exception as e:
+    print(f"gagal baca CSV: {e}"); sys.exit(1)
+if kind == 'line':
+    xs = range(len(df)); ys = df.iloc[:, col-1]
+    plt.plot(xs, ys); plt.xlabel('index'); plt.ylabel(df.columns[col-1])
+elif kind == 'scatter':
+    plt.scatter(df.iloc[:, 0], df.iloc[:, col-1], s=6, alpha=0.6)
+    plt.xlabel(df.columns[0]); plt.ylabel(df.columns[col-1])
+else:
+    plt.hist(df.iloc[:, col-1], bins=30, alpha=0.7)
+    plt.xlabel(df.columns[col-1]); plt.ylabel('frekuensi')
+plt.title(title)
+plt.tight_layout(); plt.savefig(out, dpi=150)
+print(f"plot -> {out}")
+PYEOF
+}
+
+# -----------------------------------------------------------------------------
+# /calc — kalkulator ilmiah: ekspresi numerik python aman (tanpa eval-zsh)
+# /calc "2**10"  |  /calc "sqrt(144)"  |  /calc "sin(pi/6)"
+# -----------------------------------------------------------------------------
+anf_calc() {
+    local expr="${*:-}"
+    [[ -z "$expr" ]] && { _anf_log warn "Usage: /calc <ekspresi matematika (python)>"; return 1; }
+    local py; py="$(_anf_py)"
+    "$py" - "$expr" <<'PYEOF'
+import sys, math
+e = sys.argv[1]
+ns = {**vars(math), 'pi': math.pi, 'e': math.e}
+try:
+    r = eval(e, {"__builtins__": {}}, ns)
+    print(f"{e} = {r:.10g}" if isinstance(r, float) else f"{e} = {r}")
+except Exception as ex:
+    print(f"error: {ex}"); sys.exit(1)
+PYEOF
+}
+
+# -----------------------------------------------------------------------------
+# /sym — matematika simbolik via sympy (integral, turunan, simplify)
+# /sym "integrate(x**2, x)"  |  /sym "diff(sin(x)*exp(x), x)"
+# -----------------------------------------------------------------------------
+anf_sym() {
+    local expr="${*:-}"
+    [[ -z "$expr" ]] && { _anf_log warn "Usage: /sym <ekspresi sympy>"; return 1; }
+    local py; py="$(_anf_py)"
+    "$py" - "$expr" <<'PYEOF'
+import sys
+e = sys.argv[1]
+try:
+    import sympy as sp
+    x, y = sp.symbols('x y')
+    r = eval(e, {"__builtins__": {}, "sp": sp, "x": x, "y": y, "symbols": sp.symbols,
+                 "integrate": sp.integrate, "diff": sp.diff, "simplify": sp.simplify,
+                 "expand": sp.expand, "limit": sp.limit, "series": sp.series,
+                 "solve": sp.solve, "Rational": sp.Rational,
+                 "sin": sp.sin, "cos": sp.cos, "tan": sp.tan,
+                 "exp": sp.exp, "log": sp.log, "sqrt": sp.sqrt,
+                 "oo": sp.oo, "pi": sp.pi, "E": sp.E, "I": sp.I})
+    print(sp.sstr(r))
+except ImportError:
+    print("sympy tidak tersedia"); sys.exit(1)
+except Exception as ex:
+    print(f"error: {ex}"); sys.exit(1)
+PYEOF
+}
+
+# -----------------------------------------------------------------------------
+# /sha — checksum reproducibility (sha256) untuk manifest
+# /sha <file>   |  /sha dir <dir>  (semua file, kedalaman 2)
+# -----------------------------------------------------------------------------
+anf_sha() {
+    local target="${1:-}"; local mode="${2:-}"
+    [[ -z "$target" ]] && { _anf_log warn "Usage: /sha <file>  |  /sha dir <dir>"; return 1; }
+    if [[ "$target" == "dir" ]]; then
+        local d="${2:-.}"
+        [[ ! -d "$d" ]] && { _anf_log err "Dir tidak ada: $d"; return 1; }
+        find "$d" -maxdepth 2 -type f -not -path '*/.git/*' -exec sha256sum {} \; 2>/dev/null | head -30
+    else
+        [[ ! -f "$target" ]] && { _anf_log err "File tidak ada: $target"; return 1; }
+        sha256sum "$target"
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# /exp — scaffold eksperimen reproducible: folder + seed + env snapshot
+# /exp <nama>  -> research/outputs/exp_<nama>_<ts>/ {run.sh, env.txt, seed.txt}
+# -----------------------------------------------------------------------------
+anf_exp() {
+    local name="${1:-exp}"
+    local py; py="$(_anf_py)"
+    local dir="${ANF_RESEARCH_DIR:-$HOME/Documents/ANF-Research-Shell/research/outputs}"
+    local ts; ts=$(date +%Y%m%d_%H%M%S)
+    local expdir="$dir/exp_${name}_${ts}"
+    mkdir -p "$expdir"
+    # seed.txt
+    "$py" -c "import random; random.seed(${ANF_SEED:-42}); print('SEED=%d' % ${ANF_SEED:-42}); print('random_int=%d' % random.randint(0,10**9))" > "$expdir/seed.txt" 2>&1
+    # env.txt
+    {
+        echo "== env =="
+        "$py" -c "import sys; print('python', sys.version.split()[0])"
+        "$py" -c "import numpy; print('numpy', numpy.__version__)" 2>/dev/null || echo "numpy n/a"
+        "$py" -c "import torch; print('torch', torch.__version__, 'cuda=', torch.cuda.is_available())" 2>/dev/null || echo "torch n/a"
+        echo "== date =="; date -u +%Y-%m-%dT%H:%M:%SZ
+    } > "$expdir/env.txt" 2>&1
+    # run.sh stub
+    print "#!/usr/bin/env bash" > "$expdir/run.sh"
+    print "# Isi command eksperimenmu di sini. Deterministik: pakai seed dari seed.txt." >> "$expdir/run.sh"
+    print "# Contoh: python3 train.py --seed $(grep -o 'SEED=[0-9]*' "$expdir/seed.txt" | cut -d= -f2)" >> "$expdir/run.sh"
+    chmod +x "$expdir/run.sh"
+    _anf_log ok "Eksperimen '$name' dibuat: $expdir"
+    ls "$expdir"
+}
+
+# -----------------------------------------------------------------------------
+# /csv — data wrangling cepat: head / summary / kolom
+# /csv head <file> [n]  |  /csv summary <file>  |  /csv cols <file>
+# -----------------------------------------------------------------------------
+anf_csv() {
+    local op="${1:-head}" file="${2:-}"; local n="${3:-5}"
+    [[ -z "$file" || ! -f "$file" ]] && { _anf_log warn "Usage: /csv [head|summary|cols] <file.csv> [n]"; return 1; }
+    local py; py="$(_anf_py)"
+    case "$op" in
+        head)    "$py" - "$file" "$n" <<'PYEOF'
+import sys
+try:
+    import pandas as pd
+    df = pd.read_csv(sys.argv[1])
+    print(df.head(int(sys.argv[2])).to_string(index=False))
+except FileNotFoundError:
+    print(f"file tidak ditemukan: {sys.argv[1]}"); sys.exit(1)
+except Exception as e:
+    print(f"gagal baca CSV (pastikan file CSV rapi): {type(e).__name__}: {e}"); sys.exit(1)
+PYEOF
+                 ;;
+        summary) "$py" - "$file" <<'PYEOF'
+import sys
+try:
+    import pandas as pd
+    df = pd.read_csv(sys.argv[1])
+    print(f"baris={len(df)} kolom={len(df.columns)}")
+    print(df.describe(include='all').to_string())
+except FileNotFoundError:
+    print(f"file tidak ditemukan: {sys.argv[1]}"); sys.exit(1)
+except Exception as e:
+    print(f"gagal baca CSV (pastikan file CSV rapi): {type(e).__name__}: {e}"); sys.exit(1)
+PYEOF
+                 ;;
+        cols)    "$py" - "$file" <<'PYEOF'
+import sys
+try:
+    import pandas as pd
+    df = pd.read_csv(sys.argv[1])
+    for i, c in enumerate(df.columns, 1):
+        print(f"  {i}. {c}  ({df[c].dtype})")
+except FileNotFoundError:
+    print(f"file tidak ditemukan: {sys.argv[1]}"); sys.exit(1)
+except Exception as e:
+    print(f"gagal baca CSV (pastikan file CSV rapi): {type(e).__name__}: {e}"); sys.exit(1)
+PYEOF
+                 ;;
+        *) _anf_log warn "Usage: /csv [head|summary|cols] <file.csv> [n]"; return 1;;
+    esac
+}
+
+# -----------------------------------------------------------------------------
+# /bib — validasi bibliografi .bib (count, duplikat, entry rusak)
+# /bib <file.bib>
+# -----------------------------------------------------------------------------
+anf_bib() {
+    local f="${1:-}"
+    [[ -z "$f" || ! -f "$f" ]] && { _anf_log warn "Usage: /bib <file.bib>"; return 1; }
+    local py; py="$(_anf_py)"
+    "$py" - "$f" <<'PYEOF'
+import sys, re
+fn = sys.argv[1]
+try:
+    with open(fn, errors='replace') as fh:
+        keys, dup, types, bad = [], set(), {}, 0
+        cur = None
+        for line in fh:
+            m = re.match(r'@(\w+)\{([^,]+),', line)
+            if m:
+                t, k = m.group(1).lower(), m.group(2).strip()
+                if k in keys: dup.add(k)
+                keys.append(k); types[t] = types.get(t, 0) + 1; cur = k
+            elif '}' in line:
+                cur = None
+            elif cur and ('=' not in line) and line.strip() and not line.strip().startswith('%') and not line.strip().startswith('@'):
+                bad += 1
+except FileNotFoundError:
+    print(f"file tidak ditemukan: {fn}"); sys.exit(1)
+except Exception as e:
+    print(f"gagal baca .bib: {type(e).__name__}: {e}"); sys.exit(1)
+print(f"total entries : {len(keys)}")
+print(f"duplikat      : {len(dup)}  {sorted(dup)[:10]}")
+print("tipe          : " + ", ".join(f"{k}={v}" for k, v in sorted(types.items())))
+print(f"baris mencurigakan: {bad}")
+PYEOF
+}
+
+# -----------------------------------------------------------------------------
+# Registrasi command researcher workflow
+# -----------------------------------------------------------------------------
+_ANF_CMD_DESC+=( \
+    plot   "Visualisasi data cepat -> PNG ke research/outputs" \
+    calc   "Kalkulator ilmiah (ekspresi python matematika)" \
+    sym    "Matematika simbolik (integral/turunan via sympy)" \
+    sha    "Checksum sha256 (reproducibility manifest)" \
+    exp    "Scaffold eksperimen reproducible (folder+seed+env)" \
+    csv    "Data wrangling CSV (head/summary/cols via pandas)" \
+    bib    "Validasi bibliografi .bib (count/duplikat/tipe)" \
+)
+typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
+for _cmd in plot calc sym sha exp csv bib; do
+    _func="anf_${_cmd//-/_}"
+    (( ${+functions[$_func]} )) && alias "/$_cmd"="$_func"
+done
+unset _cmd _func
+# ==============================================================================
+# SECTION 16 — ANF Auto-Provisioning (Linux-focused) v1.5
+# /ensure — cek & auto-install tool yang belum ada di sistem.
+# Fokus Linux (apt/pacman/dnf); brew sebagai fallback. Selalu konfirmasi dulu.
+# ==============================================================================
+
+# Tool wajib & opsional, dengan nama paket per package manager.
+# Format: "binary:pkg-apt:pkg-pacman:pkg-dnf:pkg-brew:urgent(1|0)"
+_anf_pkg_map() {
+    # $1 = "binary:pkg-apt:pkg-pacman:pkg-dnf:pkg-brew:urgent"
+    local entry="$1" mgr="$2"
+    local binary="${entry%%:*}" rest="${entry#*:}"
+    local p_apt="${rest%%:*}" rest="${rest#*:}"
+    local p_pac="${rest%%:*}" rest="${rest#*:}"
+    local p_dnf="${rest%%:*}" rest="${rest#*:}"
+    local p_brew="${rest%%:*}" urgent="${rest#*:}"
+    case "$mgr" in
+        apt)    print -r -- "$p_apt" ;;
+        pacman) print -r -- "$p_pac" ;;
+        dnf)    print -r -- "$p_dnf" ;;
+        brew)   print -r -- "$p_brew" ;;
+        *)      print -r -- "$binary" ;;
+    esac
+}
+
+_anf_pkg_urgent() {
+    local entry="$1"
+    print -r -- "${entry##*:}"
+}
+
+
+
 # SECTION 10 — Command Registration & Categorized Help
 # ==============================================================================
 typeset -gA _ANF_CMD_DESC
@@ -1974,6 +2681,29 @@ _ANF_CMD_DESC=(
     playbook "Playbook"
     ai-assist "AI assist"
     ai-log "AI log"
+    # Research Suite (merged)
+    why               "Positioning ANF (satu cerita)"
+    gen               "AI code gen via hermes/opencode"
+    task              "Orchestrator task tmux (start/list/attach/kill)"
+    q                 "Grep cepat project (skip .git/node_modules/venv)"
+    gitx              "Git quick-ops (s/a/c/l/b/p/d/x)"
+    envcard           "Ringkasan OS/disk/mem/tools"
+    mvp               "Version & branch mgmt (tag/v/b/s/l)"
+    mlinfo            "Stack ML/DL: torch/sklearn/numpy/CUDA"
+    stat              "Statistik dataset (mean/median/std/entropy)"
+    mlbench           "Benchmark deterministik -> CSV research/outputs"
+    dlcheck           "Smoke DL CPU (torch seed=42)"
+    dataset           "Registry dataset riset (TSV persist)"
+    paperstat         "Statistik kata/baris/ref manuskrip"
+    plot              "Visualisasi matplotlib -> PNG"
+    calc              "Kalkulator ilmiah (python math)"
+    sym               "Matematika simbolik (sympy)"
+    sha               "Checksum sha256 (reproducibility)"
+    exp               "Scaffold eksperimen reproducible"
+    csv               "Data wrangling CSV (pandas)"
+    bib               "Validasi bibliografi .bib"
+    ensure            "Auto-provisioning tool (doctor/all)"
+
 
 )
 typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
@@ -1984,7 +2714,7 @@ typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
 # Help dikategorisasi [NEW-HELP]
 anf_help() {
     print "${C_Y}╔═══════════════════════════════════════════════════╗"
-    print "║  ANF CYBER SHELL v${ANF_VERSION}              ║"
+    print "║  ANF SHELL (Cyber + Research) v${ANF_VERSION}              ║"
     print "╚═══════════════════════════════════════════════════╝${C_0}"
 
         local -a categories=(
@@ -2000,6 +2730,7 @@ anf_help() {
         "Integrations & AI:hermes hermes-locate hermes-set github ai-assist ai-log"
         "Utilities:uuid random epoch clip"
         "Output:report sysinfo"
+        "Research & Math:why gen task q gitx envcard mvp mlinfo stat mlbench dlcheck dataset paperstat plot calc sym sha exp csv bib ensure"
     )
     for entry in "${categories[@]}"; do
         local cat="${entry%%:*}" cmds="${entry#*:}"
@@ -2140,8 +2871,8 @@ anf_banner() {
     trap 'return' INT
     cat << BANNER
 ${C_L}╔══════════════════════════════════════════════════════════════╗
-║  ANF CYBER SHELL v${ANF_VERSION}
-║  Purple Team │ C2 Hardened │ Recon │ OSINT │ Exploit │ Defense
+║  ANF SHELL (Cyber + Research) v${ANF_VERSION}
+║  Purple Team │ C2 │ Recon │ OSINT │ Exploit │ Research
 ╚══════════════════════════════════════════════════════════════╝${C_0}
 ${C_G}[✓] GuardFall v2  — Unicode normalization, TP/FP/F1 metrics
 [✓] C2 v2         — hardened subprocess.run(), JSONL session log
