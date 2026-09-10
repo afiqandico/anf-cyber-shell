@@ -17,7 +17,7 @@ setopt INTERACTIVE_COMMENTS GLOB_DOTS NO_LIST_BEEP NO_BEEP NO_BANG_HIST
 autoload -Uz is-at-least
 is-at-least 5.0 "${ZSH_VERSION}" || { print -u2 "ERROR: zsh >= 5.0 required"; return 1; }
 
-export ANF_VERSION="1.0.0-cyber"
+export ANF_VERSION="1.0.1-cyber"
 
 # ==============================================================================
 # SECTION 1 — Colors, Glyphs, Directories, PATH
@@ -99,6 +99,33 @@ _anf_with_timeout() {
         { sleep "$t"; kill -HUP $pid 2>/dev/null; } &
         wait $pid 2>/dev/null
     fi
+}
+
+# --- Helper: resolusi binary & kotak ------------------------------------------
+# PITFALL: `command -v <nama>` di dalam shell ANF mengembalikan TEKS ALIAS
+# (mis. "alias hermes=anf_hermes"), bukan path binary — karena setiap command ANF
+# didaftarkan sebagai alias nama polos. Akibatnya cek tool selalu lolos dan teks
+# alias itu bahkan ikut dieksekusi. Untuk mencari binary SELALU pakai
+# _anf_has_bin/_anf_which: `whence -p` hanya menyisir PATH (alias diabaikan).
+_anf_which() { whence -p -- "$1" 2>/dev/null }
+_anf_has_bin() { [[ -n "$(_anf_which "$1")" ]] }
+
+# Kotak berjudul: lebar border dihitung dari ISI, bukan spasi hardcoded, jadi
+# tidak pernah meleset walau judul memuat versi/angka yang berubah.
+# Pakai: _anf_box <warna> "judul" ["baris kedua" ...]
+_anf_box() {
+    local col="$1"; shift
+    local -a lines=("$@")
+    local line max=0
+    for line in "${lines[@]}"; do
+        if (( ${#line} > max )); then max=${#line}; fi
+    done
+    local bar="$(printf '═%.0s' {1..$((max + 2))})"
+    print -r -- "${col}╔${bar}╗${C_0}"
+    for line in "${lines[@]}"; do
+        printf '%s║%s %s%*s %s║%s\n' "$col" "$C_0" "$line" $((max - ${#line})) '' "$col" "$C_0"
+    done
+    print -r -- "${col}╚${bar}╝${C_0}"
 }
 
 _anf_confirm() {
@@ -337,9 +364,7 @@ anf_benchmark_guardfall() {
     # Reset counters untuk benchmark bersih
     _ANF_GF_TP=0; _ANF_GF_FP=0; _ANF_GF_FN=0; _ANF_GF_TN=0
 
-    print "${C_Y}╔═════════════════════════════════════════╗"
-    print "║      GUARDFALL v2 BENCHMARK             ║"
-    print "╚═════════════════════════════════════════╝${C_0}"
+    _anf_box "$C_Y" "GUARDFALL v2 BENCHMARK"
     printf "  %s%-12s %-32s %s%s\n" "$DIM" "Result" "Command" "Label" "$C_0"
     print "  ─────────────────────────────────────────"
 
@@ -440,7 +465,7 @@ anf_doctor() {
     )
     local -a missing=()
     for tool in "${tools[@]}"; do
-        command -v "$tool" >/dev/null 2>&1 \
+        _anf_has_bin "$tool" \
             && _anf_log ok "$tool" \
             || { _anf_log err "$tool MISSING"; missing+=("$tool"); }
     done
@@ -824,9 +849,7 @@ PYEOF
         color="$C_M"; verdict="Possibly Obfuscated — H ∈ (3.8, 4.5)"
     }
 
-    print "${C_Y}╔═══════════════════════════════════════════╗"
-    print "║  SHANNON ENTROPY ANALYSIS  [MATH-01]     ║"
-    print "╚═══════════════════════════════════════════╝${C_0}"
+    _anf_box "$C_Y" "SHANNON ENTROPY ANALYSIS  [MATH-01]"
     printf "  %-24s ${color}%s bits/byte${C_0}\n" "Entropy H(X):"    "$ent"
     printf "  %-24s [%s, %s]\n"                   "95%% CI (Bootstrap):" "$ci_lo" "$ci_hi"
     printf "  %-24s %s\n"                          "Normalized (÷8):" "$norm"
@@ -936,9 +959,7 @@ PYEOF
         j_verdict="Jitter rendah → Possible C2 with jitter obfuscation"
     }
 
-    print "${C_Y}╔═══════════════════════════════════════════════╗"
-    print "║  BEACONING MATHEMATICAL ANALYSIS [MATH-02]   ║"
-    print "╚═══════════════════════════════════════════════╝${C_0}"
+    _anf_box "$C_Y" "BEACONING MATHEMATICAL ANALYSIS [MATH-02]"
     printf "  %-28s %s\n"                           "Samples (n):"     "$count"
     printf "  %-28s %ss\n"                          "Mean Interval μ:" "$mean"
     printf "  %-28s %ss\n"                          "Std Dev σ:"       "$stddev"
@@ -1088,9 +1109,7 @@ PYEOF
     rec=$(echo "$py_out"   | awk -F: '/^REC/{print $2}')
     f1=$(echo "$py_out"    | awk -F: '/^F1/{print $2}')
 
-    print "${C_Y}╔══════════════════════════════════════════════════════╗"
-    print "║  ISOLATION FOREST — C2 ANOMALY DETECTION [ML-01]   ║"
-    print "╚══════════════════════════════════════════════════════╝${C_0}"
+    _anf_box "$C_Y" "ISOLATION FOREST — C2 ANOMALY DETECTION [ML-01]"
     printf "  %-24s %s\n" "Algorithm:" "Isolation Forest (Liu et al., 2008)"
     printf "  %-24s %s\n" "Features:" "[packet_size, entropy, interval]"
     printf "  %-24s %d (Normal: %d, C2: %d)\n" \
@@ -1243,9 +1262,7 @@ PYEOF
 # --- 8.2 ML Algorithm Comparison (Z-Score vs Isolation Forest) ---
 anf_eval_compare_ml() {
     local n="${1:-200}"
-    print "${C_Y}╔════════════════════════════════════════════╗"
-    print "║  ML ALGORITHM COMPARISON (n=$n)           ║"
-    print "╚════════════════════════════════════════════╝${C_0}"
+    _anf_box "$C_Y" "ML ALGORITHM COMPARISON (n=$n)"
 
     local outfile="$AF_EVAL_DIR/results/ml_compare_$(date +%Y%m%d_%H%M%S).txt"
     mkdir -p "$AF_EVAL_DIR/results"
@@ -1302,7 +1319,7 @@ anf_autopwn() {
 
 anf_suricata() {
     _anf_check_sudo || return 1
-    if command -v suricata >/dev/null 2>&1; then
+    if _anf_has_bin suricata; then
         # Jalankan di background biar tidak memblokir terminal.
         sudo suricata -i "${1:-eth0}" \
             -c /etc/suricata/suricata.yaml \
@@ -1483,7 +1500,7 @@ anf_dns() {
 
 anf_whois() {
   local target=${1:-$T}; [[ -z "$target" ]] && { _anf_log err "No target set"; return 1; }
-  command -v whois >/dev/null 2>&1 && whois "$target" | head -40 || _anf_log err "whois missing"
+  if _anf_has_bin whois; then whois "$target" | head -40; else _anf_log err "whois missing"; fi
 }
 
 anf_quickrecon() {
@@ -1571,17 +1588,17 @@ anf_clip() {
 # Tools Wrappers
 # ---------------------------------------------------------------------
 
-anf_amass() { command -v amass >/dev/null 2>&1 || { _anf_log err "amass not installed"; return 1; }; amass "$@"; }
+anf_amass() { _anf_has_bin amass || { _anf_log err "amass not installed"; return 1; }; amass "$@"; }
 
-anf_gobuster() { command -v gobuster >/dev/null 2>&1 || { _anf_log err "gobuster not installed"; return 1; }; gobuster "$@"; }
+anf_gobuster() { _anf_has_bin gobuster || { _anf_log err "gobuster not installed"; return 1; }; gobuster "$@"; }
 
-anf_nikto() { command -v nikto >/dev/null 2>&1 || { _anf_log err "nikto not installed"; return 1; }; nikto "$@"; }
+anf_nikto() { _anf_has_bin nikto || { _anf_log err "nikto not installed"; return 1; }; nikto "$@"; }
 
-anf_whatweb() { command -v whatweb >/dev/null 2>&1 || { _anf_log err "whatweb not installed"; return 1; }; whatweb "$@"; }
+anf_whatweb() { _anf_has_bin whatweb || { _anf_log err "whatweb not installed"; return 1; }; whatweb "$@"; }
 
 anf_hermes_locate() {
   _anf_log info "Mencari 'hermes' di sistem..."
-  if command -v hermes >/dev/null 2>&1; then HERMES_BIN="$(command -v hermes)"; print -r -- "$HERMES_BIN" > "$_anf_hermes_state"; _anf_log ok "Ditemukan di PATH: $HERMES_BIN"; return 0; fi
+  if _anf_has_bin hermes; then HERMES_BIN="$(_anf_which hermes)"; print -r -- "$HERMES_BIN" > "$_anf_hermes_state"; _anf_log ok "Ditemukan di PATH: $HERMES_BIN"; return 0; fi
   if [[ -d "$HOME/.hermes" ]]; then local hit="$(find "$HOME/.hermes" -maxdepth 3 -type f -perm -u+x 2>/dev/null | head -1)"; if [[ -n "$hit" ]]; then HERMES_BIN="$hit"; print -r -- "$HERMES_BIN" > "$_anf_hermes_state"; _anf_log ok "Ditemukan: $HERMES_BIN"; return 0; fi; fi
   local cand; for cand in ${(@f)$(_anf_hermes_candidates)}; do if [[ -x "$cand" ]]; then HERMES_BIN="$cand"; print -r -- "$HERMES_BIN" > "$_anf_hermes_state"; _anf_log ok "Ditemukan: $HERMES_BIN"; return 0; fi; done
   _anf_log warn "Belum ketemu, cari lebih dalam..."; local found="$(_anf_with_timeout 15 find "$HOME" -maxdepth 6 \( -iname 'hermes' -o -iname 'hermes-agent' \) -type f -perm -u+x 2>/dev/null | head -5)"; if [[ -n "$found" ]]; then print "${C_Y}Kandidat ditemukan:${C_0}"; print -r -- "$found" | nl -ba -w2 -s'  '; print "  ${C_L}set salah satu: /hermes-set <path>${C_0}"; else _anf_log err "Tidak ditemukan. Set manual: /hermes-set <path>"; fi; return 1
@@ -1916,9 +1933,9 @@ anf_gen() {
         _anf_log warn "Usage: /gen <deskripsi kode yang mau dibuat>"
         return 1
     fi
-    if command -v hermes >/dev/null 2>&1; then
+    if _anf_has_bin hermes; then
         _anf_log info "Memanggil hermes untuk: $prompt"
-        hermes "$prompt"
+        anf_hermes "$prompt"
         return $?
     fi
     if command -v opencode >/dev/null 2>&1; then
@@ -2578,6 +2595,81 @@ _anf_pkg_urgent() {
     print -r -- "${entry##*:}"
 }
 
+# /ensure — cek (mode doctor) & auto-install (mode all) tool yang belum ada.
+# Diport verbatim dari ANF Research Shell saat merge; sebelumnya entri
+# `ensure` sudah terdaftar di _ANF_CMD_DESC tapi fungsinya tertinggal →
+# gate #4 (mapping /cmd→fungsi) MERAH dan command `ensure` mati.
+anf_ensure() {
+    local mode="${1:-doctor}"
+    local mgr; mgr="$(_anf_get_pkg_mgr)"
+    if [[ "$mgr" == "unknown" ]]; then
+        _anf_log err "Package manager tidak terdeteksi (bukan apt/pacman/dnf/brew)."
+        return 1
+    fi
+    if [[ "$mgr" == "brew" ]]; then
+        _anf_log warn "Terdeteksi brew — ANF auto-install UTAMA untuk Linux; brew dipakai sebagai fallback."
+    fi
+
+    local -a missing=()
+    local entry binary pkg urgent i=0
+    for entry in "${_ANF_REQUIRED_TOOLS[@]}"; do
+        binary="${entry%%:*}"
+        if ! _anf_has_bin "$binary"; then
+            missing+=("$entry")
+        fi
+    done
+
+    print "${C_M}── ANF Auto-Provisioning (pkg manager: $mgr) ──${C_0}"
+    if (( ${#missing} == 0 )); then
+        print "${C_G}✓ Semua tool wajib & opsional sudah terpasang.${C_0}"
+        return 0
+    fi
+
+    print "${C_Y}Tool yang belum ada:${C_0}"
+    for entry in "${missing[@]}"; do
+        binary="${entry%%:*}"
+        pkg="$(_anf_pkg_map "$entry" "$mgr")"
+        urgent="$(_anf_pkg_urgent "$entry")"
+        if [[ "$urgent" == 1 ]]; then
+            print "  ${i}) $binary  (paket: $pkg) [wajib]"
+        else
+            print "  ${i}) $binary  (paket: $pkg)"
+        fi
+        (( i++ ))
+    done
+
+    if [[ "$mode" == "all" || "$mode" == "install" ]]; then
+        local cmd="" pkg
+        case "$mgr" in
+            apt)    cmd="sudo apt-get update && sudo apt-get install -y" ;;
+            pacman) cmd="sudo pacman -S --noconfirm" ;;
+            dnf)    cmd="sudo dnf install -y" ;;
+            brew)   cmd="brew install" ;;
+        esac
+        local -a pkgs=()
+        for entry in "${missing[@]}"; do
+            pkg="$(_anf_pkg_map "$entry" "$mgr")"
+            pkgs+=("$pkg")
+        done
+        _anf_log warn "Akan menjalankan: $cmd ${pkgs[*]}"
+        _anf_log warn "Butuh password sudo (jika apt/pacman/dnf). Lanjut? [y/N]"
+        read -q "REPLY?" || { _anf_log info "Dibatalkan."; return 1; }
+        print ""
+        _anf_log info "Menjalankan instalasi..."
+        eval "$cmd ${pkgs[*]}"
+        local rc=$?
+        if (( rc == 0 )); then
+            _anf_log ok "Instalasi selesai."
+        else
+            _anf_log err "Instalasi gagal (rc=$rc). Coba manual: $cmd ${pkgs[*]}"
+            return $rc
+        fi
+    else
+        _anf_log info "Mode doctor (kering). Jalankan 'ensure all' untuk auto-install."
+    fi
+    return 0
+}
+
 
 
 # SECTION 10 — Command Registration & Categorized Help
@@ -2713,9 +2805,7 @@ typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
 
 # Help dikategorisasi [NEW-HELP]
 anf_help() {
-    print "${C_Y}╔═══════════════════════════════════════════════════╗"
-    print "║  ANF SHELL (Cyber + Research) v${ANF_VERSION}              ║"
-    print "╚═══════════════════════════════════════════════════╝${C_0}"
+    _anf_box "$C_Y" "ANF SHELL (Cyber + Research) v${ANF_VERSION}"
 
         local -a categories=(
         "Core:help status set-target reset-target workspace note doctor config paths version install update selftest targets log"
@@ -2869,11 +2959,9 @@ bindkey '^J' accept-line
 # ==============================================================================
 anf_banner() {
     trap 'return' INT
+    _anf_box "$C_L" "ANF SHELL (Cyber + Research) v${ANF_VERSION}" \
+                   "Purple Team │ C2 │ Recon │ OSINT │ Exploit │ Research"
     cat << BANNER
-${C_L}╔══════════════════════════════════════════════════════════════╗
-║  ANF SHELL (Cyber + Research) v${ANF_VERSION}
-║  Purple Team │ C2 │ Recon │ OSINT │ Exploit │ Research
-╚══════════════════════════════════════════════════════════════╝${C_0}
 ${C_G}[✓] GuardFall v2  — Unicode normalization, TP/FP/F1 metrics
 [✓] C2 v2         — hardened subprocess.run(), JSONL session log
 [✓] Analytics     — Shannon CI, Chi-Square, Isolation Forest, ROC

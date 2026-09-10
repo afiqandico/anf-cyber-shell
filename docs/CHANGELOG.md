@@ -1,5 +1,39 @@
 # CHANGELOG — ANF Cyber Shell
 
+## v1.0.1-cyber (Bugfix: kotak sejajar + lookup binary tahan-alias — 2026-09-10)
+
+**Tema: dua bug yang muncul di pemakaian harian — border banner/help meleset dan `hermes` gagal dipanggil dari dalam shell.**
+
+### Fix
+| # | Gejala | Akar masalah | Perbaikan |
+|---|--------|--------------|-----------|
+| 1 | Border banner & judul `help` miring (baris judul lebih lebar/melenceng dari border); di banner border kanan hilang sama sekali | Border `═══` ditulis hardcoded dengan asumsi panjang judul tetap, padahal judul memuat `${ANF_VERSION}` | Helper `_anf_box <warna> "judul" ["baris-2" ...]` — lebar border dihitung dari isi. Dipakai di **7 tempat**: banner, header `help`, dan 5 header analitik (GuardFall, Shannon, Beaconing, Isolation Forest, ML compare) |
+| 2 | `hermes` / `/hermes` dari dalam ANF → `command not found: alias hermes=anf_hermes` | Setiap command ANF didaftarkan sebagai **alias nama polos**, jadi `command -v hermes` mengembalikan TEKS ALIAS (bukan path); teks itu disimpan ke `HERMES_BIN` lalu dieksekusi | Helper `_anf_which` (pakai `whence -p`, hanya menyisir PATH) + `_anf_has_bin`; dipakai di `anf_hermes_locate`, `anf_gen`, `anf_doctor`, dan wrapper tool |
+
+### Kelas bug yang sama (semua situs `command -v <nama-command>`) ikut diperbaiki
+`amass`, `gobuster`, `nikto`, `whatweb`, `suricata`, `whois`, dan loop tool `anf_doctor`.
+Sebelumnya cek tool **selalu lolos** (false-positive) walau tool tidak terpasang → user menerima "command not found" alih-alih pesan ramah.
+
+### Fix tambahan (ditemukan gate saat rilis ini)
+| # | Gejala | Akar masalah | Perbaikan |
+|---|--------|--------------|-----------|
+| 3 | `ensure` tampil di `help` & `_ANF_CMD_DESC`, tapi `ensure`/`anf ensure` → `command tidak dikenal` | Saat merge research→cyber, entri `ensure` ikut masuk tapi definisi `anf_ensure` tertinggal di ANF Research Shell → gate #4 (mapping `/cmd`→fungsi) sudah **MERAH sejak merge**, dan manifest v1.0.0 keliru mengklaim mapping "utuh" | `anf_ensure` diport dari `ANF-Research-Shell` (memakai `_anf_has_bin`; label `[wajib]` kini hanya untuk flag `urgent=1` — versi research menampilkannya untuk "0" juga) | `make verify` kini **PASS=10 FAIL=0** |
+
+Catatan kejujuran: gate #4 merah ini **pre-existing**, bukan akibat patch kotak/alias — dibuktikan dengan menjalankan gate yang sama pada backup pra-fix (juga `missing: ensure`).
+
+### Verifikasi v1.0.1-cyber
+- `zsh -n` ✅; `anf selftest` → **PASS 16 / FAIL 0**.
+- Kotak: `anf_help` + `anf_banner` → **2 kotak, 0 misaligned** (lebar 45 & 57 kolom, dihitung per karakter).
+- `anf hermes --version` → `Hermes Agent v0.21.0 (2026.8.31)` (sebelumnya gagal total).
+- `anf doctor` → `amass`/`gobuster`/`suricata` kini jujur **MISSING** (sebelumnya selalu ◎ palsu).
+- Gate tambahan di `scripts/verify.sh`: **#7** kotak sejajar, **#8** lookup binary tahan-alias, **#9** `anf_hermes_locate` fungsional (dilewati bila hermes tidak terpasang).
+- `make verify` → **PASS=10 / FAIL=0** (gate #4 mapping hijau setelah `anf_ensure` diport).
+
+### Konservatif
+- Backup pra-fix: `research/archive/anf_cyber_shell_v1.0.0-cyber_pre-fix-2026-09-10.zsh`
+  (sha256 `bccd633bb6272370fd53df53ca334edb75118a24d4e654235adff51f4e6cc731`, 130033 B).
+- Tidak ada fungsi yang dihapus: hanya 7 blok kotak + 8 situs cek tool diubah, ditambah 3 helper baru.
+
 ## v1.0.0-cyber (Rebuilt standalone — 2026-09-09)
 
 **Tema: ANF Cyber Shell dilahirkan ulang sebagai project mandiri berfokus purple-team / cyber-ops, diturunkan dari arsip ANF v1.6.0 yang memuat modul cyber lengkap.**
