@@ -15,6 +15,7 @@ if [[ "$PREFIX" != /usr/local && $# -ge 1 ]]; then
 fi
 
 SKIP_CONFIG=0
+CFG_DIR="$HOME/.config/anf-cyber"
 BIN_DIR="$PREFIX/bin"
 while [[ $# -gt 0 ]]; do
   case "$1" in

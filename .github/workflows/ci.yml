@@ -1,0 +1,46 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: make verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install zsh
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends zsh jq
+          zsh --version
+          python3 --version
+
+      - name: Parse every tracked zsh file
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files '*.zsh' 'bin/*')
+          for f in "${files[@]}"; do
+            zsh -n "$f"
+            echo "ok: $f"
+          done
+
+      - name: Run verification gate and assert result
+        run: |
+          set -euo pipefail
+          out="$(make verify)"
+          printf '%s\n' "$out"
+          grep -q 'RESULT: PASS=' <<<"$out"
+          if grep -q '\[FAIL\]' <<<"$out"; then
+            echo "verification gate reported FAIL" >&2
+            exit 1
+          fi

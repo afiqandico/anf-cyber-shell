@@ -1,5 +1,17 @@
 # CHANGELOG — ANF Cyber Shell
 
+## Unreleased — publication prep (2026-11-06)
+
+Repo disiapkan untuk publikasi terbuka. Tidak ada perubahan perilaku command.
+
+| Perubahan | Alasan | Bukti |
+|-----------|--------|-------|
+| Hapus 3 definisi fungsi duplikat (`anf_osint_email`, `anf_autopwn`, `anf_sysinfo` — salinan lama yang sudah di-*shadow* definisi berikutnya) | `grep -c '^anf_[a-z_]*()'` melaporkan 108 padahal hanya 105 nama unik; duplikat mati menyesatkan audit | 108 → **105** definisi = 105 nama unik; `make verify` tetap `PASS=15 FAIL=0` |
+| `install.sh`: inisialisasi `CFG_DIR` sebelum blok `if` | `./install.sh --prefix X --skip-config` gagal `CFG_DIR: unbound variable` (exit 1) walau instalasi sukses | sebelum: `line 49: CFG_DIR: unbound variable`; sesudah: exit 0 |
+| `README.md` ditulis ulang dalam bahasa Inggris | Syarat publikasi portofolio: audiens internasional | angka diukur ulang (9.251 baris zsh, 105 fungsi, 110 command/14 grup) |
+| Tambah `.github/workflows/ci.yml` | Gate `make verify` harus jalan di CI, bukan hanya lokal | `zsh -n` semua file + `make verify` di `ubuntu-latest` |
+| Redaksi path lokal absolut (`/home/afiq/...`, `~/Documents/...`) di `README.md`, `NOTICE.md`, `docs/CHANGELOG.md`, `research/outputs/` | Higiene publikasi: struktur direktori rumah tidak perlu terekspos | `grep -rIn '/home/afiq\|~/Documents'` → 0 hasil di luar `research/archive/` |
+
 ## v1.0.4-cyber (Anti-bentrok: alias tidak lagi menimpa biner/tool dasar — 2026-11-06)
 
 **Tema: `anf` berhenti "membajak" nama perintah lain.** Sebelum ini shell ANF diam-diam
@@ -10,7 +22,7 @@ mengganti `stat`, `install`, `proxy`, `whois`, `nikto`, `gobuster`, `whatweb`, `
 |---|----------------|-----------------|-------|
 | 1 | alias `_ANF_CMD_NAMES` dibuat untuk semua nama, termasuk yang punya biner di PATH | alias **dilewati** bila `${commands[<nama>]}` ada; nama dicatat di `_ANF_SHADOWED` | gate #11 `bentrok=0`; `anf config` → `Tanpa alias (bentrok biner): 9 nikto, tor, stat, …` |
 | 2 | `ls`/`cat`/`grep`/`less`/`cd`/`fd`/`log` diganti (eza/bat/rg/zoxide/lnav) setiap sesi | SECTION 13 jadi **opt-in**: `ANF_UX_ALIASES=0` (default) = shell berperilaku seperti zsh biasa | gate #11 `ux_ls=0`; `alias ls` kosong |
-| 3 | `hermes` di dalam ANF menunjuk `anf_hermes`, bukan CLI Hermes | `whence -p hermes` → `~/.local/bin/hermes` | uji runtime: `stat=/usr/bin/stat hermes=/home/afiq/.local/bin/hermes` |
+| 3 | `hermes` di dalam ANF menunjuk `anf_hermes`, bukan CLI Hermes | `whence -p hermes` → `~/.local/bin/hermes` | uji runtime: `stat=/usr/bin/stat hermes=~/.local/bin/hermes` |
 
 Cara pakai setelah perubahan:
 - Perintah ANF yang namanya bentrok: `anf stat file.csv`, `anf whois domain`, `anf install pkg` (dispatcher tidak terpengaruh alias).
@@ -95,7 +107,7 @@ Catatan kejujuran: gate #4 merah ini **pre-existing**, bukan akibat patch kotak/
 ### Asal-usul & keputusan
 - Sebelum 2026-09-07: script tunggal **AFUCKINGCO → ANF Research Shell** berisi cyber ops + riset (C2, recon, OSINT, exploit, defense + math/ML).
 - 2026-09-07: modul cyber **dipisah** dari ANF Research Shell (biar repo riset bersih), diarsipkan ke
-  `~/Documents/Archive/ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh` (snapshot lengkap pra-split).
+  `ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh` (snapshot lengkap pra-split).
 - 2026-09-09: project mandiri **ANF-Cyber-Shell** dibangun ulang (**verbatim reuse**) dari arsip tersebut, dengan identitas cyber-first.
 
 ### Perubahan atas arsip (basis = arsip v1.6.0 FULL, 123 fungsi / 2285 baris)
@@ -114,8 +126,8 @@ Catatan kejujuran: gate #4 merah ini **pre-existing**, bukan akibat patch kotak/
 - Launcher: `anf-cyber hash abc` → MD5 benar; `anf-cyber help` → kategori **C2 Framework** tampil.
 
 ### Konservatif
-- Arsip asli di `~/Documents/Archive/ANF-cyber-modules-v1.6/` **tidak diubah** (tetap satu-satunya sumber kebenaran).
-- ANF Research Shell (v1.6.1, `~/Documents/Projects/ANF-Research-Shell/` & `security-lab/`) **tidak disentuh**.
+- Arsip asli di `ANF-cyber-modules-v1.6/` **tidak diubah** (tetap satu-satunya sumber kebenaran).
+- ANF Research Shell (v1.6.1, `ANF-Research-Shell/` & `security-lab/`) **tidak disentuh**.
 - Command berbahaya (autopwn, suricata real, priv-esc, persist) tidak dieksekusi oleh gate verifikasi.
 
 ---

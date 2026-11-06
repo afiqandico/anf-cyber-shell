@@ -43,7 +43,7 @@ Backup pra-fix: `research/archive/anf_cyber_shell_v1.0.0-cyber_pre-fix-2026-09-1
 
 ## Sumber kebenaran (origin)
 - Basis diturunkan **verbatim** dari arsip penulis:
-  `~/Documents/Archive/ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh`
+  `ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh`
   (snapshot ANF v1.6.0 pra-split, modul cyber lengkap).
 - Modifikasi atas basis (rebrand promo saja, fungsi tidak dihapus):
   header/banner/help → cyber-first, `ANF_VERSION=1.0.0-cyber`, cache dir → `anf-cyber`.

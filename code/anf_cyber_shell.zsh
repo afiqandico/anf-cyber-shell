@@ -1302,21 +1302,6 @@ anf_eval_export_audit() {
 # ==============================================================================
 # SECTION 9 — OSINT, Exploit, Post-Exploit, Defense
 # ==============================================================================
-anf_osint_email() {
-    [[ -z "$1" ]] && { _anf_log err "Usage: /osint-email <email>"; return 1; }
-    command -v holehe >/dev/null 2>&1 \
-        && holehe --no-color "$1" \
-        || _anf_log err "holehe missing. Install: pip install holehe"
-}
-
-anf_autopwn() {
-    local target="${1:-$T}"
-    [[ -z "$target" ]] && { _anf_log err "No target."; return 1; }
-    command -v nuclei >/dev/null 2>&1 \
-        && nuclei -target "$target" -severity critical,high -silent \
-        || _anf_log err "nuclei missing"
-}
-
 anf_suricata() {
     _anf_check_sudo || return 1
     if _anf_has_bin suricata; then
@@ -1358,17 +1343,6 @@ anf_report() {
         anf_guardfall_metrics 2>&1
     } > "$outfile"
     _anf_log ok "Report → $outfile"
-}
-
-anf_sysinfo() {
-    local file="sysinfo_$(date +%Y%m%d_%H%M%S).txt"
-    {
-        uname -a
-        command -v lscpu >/dev/null && lscpu
-        command -v free  >/dev/null && free -h
-        command -v df    >/dev/null && df -h
-    } > "$file" 2>&1
-    _anf_log ok "Sysinfo → $file"
 }
 
 # ==============================================================================

@@ -10,7 +10,7 @@
   oleh penulis dengan bantuan asisten AI (Hermes, model DeepSeek V4 Flash)
   sebagai alat pengembangan — sesuai kebijakan AI disclosure pada README.
 - Project ini dibangun ulang (**rebuilt standalone**) dari arsip
-  `~/Documents/Archive/ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh`
+  `ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh`
   (snapshot v1.6.0 pra-split berisi modul cyber lengkap), setelah modul cyber
   dipisah dari **ANF Research Shell** pada 2026-09-07. Script inti diturunkan
   verbatim dari karya penulis sendiri; tidak ada konten pihak ketiga disalin.
