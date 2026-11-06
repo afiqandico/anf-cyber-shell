@@ -201,7 +201,10 @@ semantics; alias/binary conflict count; temp-file and alias hygiene; `anfrc` uma
 and cache permissions; launcher drift (`cmp -s` against the installed copy). Exit
 code is non-zero if any check fails.
 
-Current status on the published commit: **`RESULT: PASS=15 FAIL=0`**.
+Current status on the published commit: **`RESULT: PASS=15 FAIL=0`** locally, and
+**`PASS=14 FAIL=0`** in CI — the difference is check 9, which exercises the optional
+`hermes` integration and reports `SKIP` when that binary is absent (CI installs only
+zsh and jq). Zero failures either way.
 
 CI (`.github/workflows/ci.yml`) installs `zsh` on `ubuntu-latest`, parses every
 tracked zsh file, and runs `make verify`. No echo-only steps.
