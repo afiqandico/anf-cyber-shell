@@ -1,5 +1,19 @@
 # CHANGELOG — ANF Cyber Shell
 
+## v1.0.3-cyber (Higiene: dead code + symlink-race + umask — 2026-11-06)
+
+**Tema: bereskan temuan audit F-E/F-F/F-G/F-I. Tidak ada perubahan perilaku command.**
+
+| # | Temuan | Perbaikan | Bukti |
+|---|--------|-----------|-------|
+| 1 | F-E: `anf_c2_decode` menulis `/tmp/exfil_$(date +%H%M%S).bin` (nama bisa ditebak, rawan symlink di `/tmp` multi-user) | `mktemp "${TMPDIR:-/tmp}/anf-exfil-XXXXXX.bin"` | gate #11 (0 pola `> /tmp/<nama-tetap>`) |
+| 2 | F-F: cache `700` tapi anaknya `775`/`664` karena umask login `002` | `umask 077` di `anfrc` (dibaca launcher sebelum lib) + `chmod 700/600` retroaktif | gate #12 (0 entri group/other-accessible) |
+| 3 | F-G: 4 blok `alias "/$_cmd"` — mati di zsh, menyesatkan audit | dihapus; satu loop alias nama polos di akhir file tetap jalan | gate #11 (`0 alias "/"`), `help`/`scan` masih berfungsi |
+| 4 | F-I: descriptor `matrix` tanpa fungsi `anf_matrix` (entri yatim, tidak aktif di runtime) | baris descriptor dihapus | harness audit: static 130 baris, yatim `[]`, runtime 110 key / 0 tanpa fungsi |
+
+Catatan: `anf_run` dipindahkan ke **sebelum** loop alias (v1.0.2 menaruhnya di akhir file sehingga `run` tidak pernah dapat alias nama polos). Dispatch `anf run` sendiri tidak terpengaruh.
+
+
 ## v1.0.2-cyber (Passthrough terkontrol `anf run` — 2026-11-06)
 
 **Tema: satu pintu eksplisit untuk perintah eksternal, sesudah audit statis membuktikan dispatcher lama tidak punya passthrough sama sekali.**

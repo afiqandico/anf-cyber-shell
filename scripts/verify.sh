@@ -3,7 +3,7 @@
 # ANF CYBER SHELL — Verify Script (gate baseline)
 # Menjalankan gate verifikasi aman (non-destruktif) terhadap script inti:
 #   1. zsh -n                        → parse error check
-#   2. version string konsisten      → 1.0.2-cyber
+#   2. version string konsisten      → 1.0.3-cyber
 #   3. alias /cmd -> anf_<fn> mapping (setiap entri _ANF_CMD_DESC punya fungsi)
 #   4. smoke test command inti aman (hash/encode/status) di subshell
 #   5. kotak banner/help sejajar (lebar dihitung per karakter)
@@ -28,7 +28,7 @@ if zsh -n "$F" >/dev/null 2>&1; then ok "zsh -n syntax"; else bad "zsh -n syntax
 
 # 2) Version
 V="$(grep -m1 -oE 'export ANF_VERSION="[^"]+"' "$F" | sed 's/.*"\(.*\)"/\1/')"
-EXPECT="1.0.2-cyber"
+EXPECT="1.0.3-cyber"
 if [[ "$V" == "$EXPECT" ]]; then ok "ANF_VERSION=$V"; else bad "ANF_VERSION=$V (harus $EXPECT)"; fi
 
 # 3) Cache dir
@@ -109,6 +109,30 @@ else
   bad "anf_run tidak sesuai -> $RUNRES"
 fi
 rm -rf "$RUND"
+
+# 11) Hygiene kode: tidak menulis ke nama tetap di /tmp (rawan symlink-race) dan
+#     tidak ada alias berprefix "/" (mati di zsh, hanya menyesatkan audit).
+TMPFIX="$(grep -nE '>[[:space:]]*"?/tmp/[A-Za-z0-9_]' "$F" | wc -l)"
+SLASHA="$(grep -c 'alias "/' "$F" 2>/dev/null || true)"
+if [[ "$TMPFIX" -eq 0 && "${SLASHA:-0}" -eq 0 ]]; then
+  ok "hygiene: 0 temp nama tetap di /tmp, 0 alias berprefix /"
+else
+  bad "hygiene: tmp_nama_tetap=$TMPFIX alias_slash=${SLASHA:-0}"
+fi
+
+# 12) OPSEC runtime: umask 077 di anfrc + tidak ada file/dir cache yang boleh
+#     diakses group/other (gate dilewati bila anfrc belum ada di mesin ini).
+CFG="${ANF_CONFIG:-$HOME/.config/anf-cyber/anfrc}"
+if [[ -f "$CFG" ]]; then
+  LOOSE="$(find "$HOME/.cache/anf-cyber" -perm /077 2>/dev/null | wc -l)"
+  if grep -q '^umask 077' "$CFG" && [[ "$LOOSE" -eq 0 ]]; then
+    ok "opsec: umask 077 + cache 700 (0 entri group/other-accessible)"
+  else
+    bad "opsec: umask_077=$((grep -c '^umask 077' "$CFG")) entri_longgar=$LOOSE"
+  fi
+else
+  ok "opsec: anfrc belum ada, gate perms dilewati"
+fi
 
 echo
 echo "RESULT: PASS=$PASS FAIL=$FAIL"

@@ -17,7 +17,7 @@ setopt INTERACTIVE_COMMENTS GLOB_DOTS NO_LIST_BEEP NO_BEEP NO_BANG_HIST
 autoload -Uz is-at-least
 is-at-least 5.0 "${ZSH_VERSION}" || { print -u2 "ERROR: zsh >= 5.0 required"; return 1; }
 
-export ANF_VERSION="1.0.2-cyber"
+export ANF_VERSION="1.0.3-cyber"
 
 # ==============================================================================
 # SECTION 1 — Colors, Glyphs, Directories, PATH
@@ -1658,7 +1658,7 @@ anf_c2_interact() {
 
 anf_c2_exfil() { local sid="$1"; local remote_file="$2"; local local_name="${3:-$(basename $remote_file)}"; _anf_log warn "Pastikan agent menjalankan: base64 -w0 $remote_file"; _anf_log info "Setelah menerima base64 di session, jalankan: /c2-decode <paste>"; }
 
-anf_c2_decode() { local data="$1"; [[ -z "$data" ]] && return 1; local out="/tmp/exfil_$(date +%H%M%S).bin"; echo "$data" | base64 -d > "$out"; _anf_log ok "File saved to $out"; }
+anf_c2_decode() { local data="$1"; [[ -z "$data" ]] && return 1; local out; out="$(mktemp "${TMPDIR:-/tmp}/anf-exfil-XXXXXX.bin")" || return 1; echo "$data" | base64 -d > "$out"; _anf_log ok "File saved to $out"; }
 
 # ---------------------------------------------------------------------
 # OSINT MODULES
@@ -2061,11 +2061,9 @@ _ANF_CMD_DESC+=( \
     why     "Value proposition ANF (mengapa bukan terminal lain)" \
 )
 typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
-for _cmd in gen task q gitx envcard mvp why; do
-    _func="anf_${_cmd//-/_}"
-    (( ${+functions[$_func]} )) && alias "/$_cmd"="$_func"
-done
-unset _cmd _func
+# Tidak ada alias berprefix "/" di sini: zsh memperlakukan "/cmd" sebagai path,
+# jadi alias itu tidak pernah aktif. Alias nama polos didaftarkan oleh satu loop
+# di akhir file (lihat SECTION 17).
 # ==============================================================================
 # SECTION 14 — ANF Research Suite (untuk peneliti: science, math, CS, cyber)
 # Fokus audiens: researcher yang butuh statistik, ML/DL reproducible,
@@ -2307,16 +2305,10 @@ _ANF_CMD_DESC+=( \
     stat     "Statistik dataset numerik (mean/median/std/entropy)" \
     mlbench  "Benchmark deterministik baseline vs IsolationForest -> CSV" \
     dlcheck  "Smoke test DL CPU (torch, deterministic)" \
-    matrix   "Mapping command ANF ke MITRE ATT&CK tactics" \
     dataset  "Registry dataset riset (list/add)" \
     paperstat "Statistik manuskrip (kata/baris/ref)" \
 )
 typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
-for _cmd in mlinfo stat mlbench dlcheck matrix dataset paperstat; do
-    _func="anf_${_cmd//-/_}"
-    (( ${+functions[$_func]} )) && alias "/$_cmd"="$_func"
-done
-unset _cmd _func
 
 # ==============================================================================
 # SECTION 15 — ANF Researcher Workflow v1.4
@@ -2560,11 +2552,6 @@ _ANF_CMD_DESC+=( \
     bib    "Validasi bibliografi .bib (count/duplikat/tipe)" \
 )
 typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
-for _cmd in plot calc sym sha exp csv bib; do
-    _func="anf_${_cmd//-/_}"
-    (( ${+functions[$_func]} )) && alias "/$_cmd"="$_func"
-done
-unset _cmd _func
 # ==============================================================================
 # SECTION 16 — ANF Auto-Provisioning (Linux-focused) v1.5
 # /ensure — cek & auto-install tool yang belum ada di sistem.
@@ -2835,14 +2822,35 @@ anf_help() {
     print ""
 }
 
+# ==============================================================================
+# SECTION 17 — Passthrough terkontrol (v1.0.2-cyber, dirapikan v1.0.3)
+# `anf run -- <cmd> [args]` = satu-satunya pintu menjalankan perintah eksternal
+# dari ANF. Tanpa eval, tiap panggilan dicatat ke $AF_LOG_FILE, exit code
+# diteruskan. Alias ANF (stat/install/proxy/...) TIDAK ikut terpanggil karena
+# "$@" tidak di-reparse sebagai alias — `anf run -- stat` tetap /usr/bin/stat.
+# Ditaruh SEBELUM loop alias di bawah supaya `run` ikut dapat alias nama polos.
+# ==============================================================================
+anf_run() {
+    [[ "${1:-}" == "--" ]] && shift
+    if [[ $# -eq 0 ]]; then
+        _anf_log err "Usage: anf run -- <command> [args...]"
+        return 1
+    fi
+    _anf_log info "run: $*"
+    "$@"
+}
+_ANF_CMD_DESC+=( \
+    run    "Jalankan perintah eksternal: anf run -- <cmd> [args]" \
+)
+typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
+
 # Alias command -> fungsi (dibuat DI SINI, setelah semua fungsi command ada).
-# CATATAN: alias dengan prefix "/" TIDAK bekerja di zsh (zsh perlakukan /cmd sbg
-# path). Daftarkan juga nama polos (help -> anf_help, scan -> anf_scan, dst.)
-# supaya bisa dipanggil di shell interaktif tanpa slash.
+# Nama polos saja (help -> anf_help, scan -> anf_scan, run -> anf_run, dst.).
+# Prefix "/" tidak dipakai: zsh memperlakukan "/cmd" sebagai path, sehingga
+# alias berprefix garis-miring itu tidak pernah aktif (dibersihkan di v1.0.3).
 for _cmd in "${_ANF_CMD_NAMES[@]}"; do
     _func="anf_${_cmd//-/_}"
     if (( ${+functions[$_func]} )); then
-        alias "/$_cmd"="$_func"
         alias "$_cmd"="$_func"
     fi
 done
@@ -3113,25 +3121,3 @@ command -v pipx >/dev/null 2>&1 && export PATH="$HOME/.local/bin:$PATH"
 
 # rclone
 command -v rclone >/dev/null 2>&1 && alias rc='rclone'
-
-# ==============================================================================
-# SECTION 17 — Passthrough terkontrol (v1.0.2-cyber)
-# `anf run -- <cmd> [args]` = satu-satunya pintu menjalankan perintah eksternal
-# dari ANF. Tanpa eval, setiap pemanggilan dicatat ke $ANF_LOG, exit code
-# diteruskan. Alias ANF (stat/install/proxy/...) TIDAK ikut terpanggil karena
-# "$@" tidak di-reparse sebagai alias — jadi `anf run -- stat` tetap /usr/bin/stat.
-# ==============================================================================
-anf_run() {
-    [[ "${1:-}" == "--" ]] && shift
-    if [[ $# -eq 0 ]]; then
-        _anf_log err "Usage: anf run -- <command> [args...]"
-        return 1
-    fi
-    _anf_log info "run: $*"
-    "$@"
-}
-_ANF_CMD_DESC+=( \
-    run    "Jalankan perintah eksternal: anf run -- <cmd> [args]" \
-)
-typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
-alias "run"="anf_run"

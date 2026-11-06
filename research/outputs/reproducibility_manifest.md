@@ -1,6 +1,6 @@
 # Reproducibility Manifest — ANF Cyber Shell
 
-**Versi:** 1.0.2-cyber
+**Versi:** 1.0.3-cyber
 **Tanggal verifikasi:** 2026-11-06
 **Command:** `make verify` (atau `bash scripts/verify.sh`)
 
@@ -8,7 +8,7 @@
 | # | Gate | Metode | Status |
 |---|------|--------|--------|
 | 1 | Parse syntax zsh | `zsh -n code/anf_cyber_shell.zsh` | ✅ |
-| 2 | Versi konsisten | `ANF_VERSION == 1.0.2-cyber` | ✅ |
+| 2 | Versi konsisten | `ANF_VERSION == 1.0.3-cyber` | ✅ |
 | 3 | Cache dir terpisah | `~/.cache/anf-cyber` (tidak menabrak research) | ✅ |
 | 4 | Mapping `/cmd`→fungsi | setiap entri `_ANF_CMD_DESC` punya `anf_<cmd>` | ✅ (utuh) |
 | 5 | Smoke command inti | `encode test`→`dGVzdA==`, `hash abc`→MD5 `90015098...` | ✅ |
@@ -18,6 +18,8 @@
 | 9 | Lookup binary tahan-alias | tidak ada `command -v <nama-command>` di script inti | ✅ |
 | 10 | `anf_hermes` fungsional | `anf_hermes_locate` → path executable nyata (skip bila hermes absen) | ✅ |
 | 11 | `anf_run` passthrough | `anf run -- sh -c 'exit 7'` → 7; `anf run -- stat -c %s` == ukuran file asli (alias tidak menimpa); tanpa argumen → exit 1 | ✅ |
+| 12 | Higiene kode | 0 penulisan ke nama tetap di `/tmp` (pakai `mktemp`), 0 `alias "/cmd"` | ✅ |
+| 13 | OPSEC runtime | `umask 077` di `anfrc`; 0 entri `~/.cache/anf-cyber` yang group/other-accessible | ✅ |
 
 ## Bugfix v1.0.1-cyber (2026-09-10)
 | Gejala | Akar masalah | Perbaikan | Bukti |
