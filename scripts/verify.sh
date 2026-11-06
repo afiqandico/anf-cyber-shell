@@ -110,7 +110,7 @@ else
 fi
 rm -rf "$RUND"
 
-# 11) Hygiene kode: tidak menulis ke nama tetap di /tmp (rawan symlink-race) dan
+# 12) Hygiene kode: tidak menulis ke nama tetap di /tmp (rawan symlink-race) dan
 #     tidak ada alias berprefix "/" (mati di zsh, hanya menyesatkan audit).
 TMPFIX="$(grep -nE '>[[:space:]]*"?/tmp/[A-Za-z0-9_]' "$F" | wc -l)"
 SLASHA="$(grep -c 'alias "/' "$F" 2>/dev/null || true)"
@@ -120,7 +120,7 @@ else
   bad "hygiene: tmp_nama_tetap=$TMPFIX alias_slash=${SLASHA:-0}"
 fi
 
-# 12) OPSEC runtime: umask 077 di anfrc + tidak ada file/dir cache yang boleh
+# 13) OPSEC runtime: umask 077 di anfrc + tidak ada file/dir cache yang boleh
 #     diakses group/other (gate dilewati bila anfrc belum ada di mesin ini).
 CFG="${ANF_CONFIG:-$HOME/.config/anf-cyber/anfrc}"
 if [[ -f "$CFG" ]]; then
