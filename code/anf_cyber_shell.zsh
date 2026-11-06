@@ -17,7 +17,7 @@ setopt INTERACTIVE_COMMENTS GLOB_DOTS NO_LIST_BEEP NO_BEEP NO_BANG_HIST
 autoload -Uz is-at-least
 is-at-least 5.0 "${ZSH_VERSION}" || { print -u2 "ERROR: zsh >= 5.0 required"; return 1; }
 
-export ANF_VERSION="1.0.3-cyber"
+export ANF_VERSION="1.0.4-cyber"
 
 # ==============================================================================
 # SECTION 1 — Colors, Glyphs, Directories, PATH
@@ -1455,7 +1455,7 @@ anf_log() {
 # Status, Config, Paths, Version, Doctor, Install, Update
 # ---------------------------------------------------------------------
 
-anf_config() { print "${C_Y}=== CONFIG ===${C_0}"; print "  ${C_T}Cache:${C_0} $ANF_CACHE_DIR"; print "  ${C_T}Target:${C_0} ${T:-<unset>}"; }
+anf_config() { print "${C_Y}=== CONFIG ===${C_0}"; print "  ${C_T}Cache:${C_0} $ANF_CACHE_DIR"; print "  ${C_T}Target:${C_0} ${T:-<unset>}"; print "  ${C_T}UX alias (ls/cat/grep/cd):${C_0} ${ANF_UX_ALIASES:-0}"; print "  ${C_T}Tanpa alias (bentrok biner):${C_0} ${#_ANF_SHADOWED} ${(j:, :)_ANF_SHADOWED}"; }
 
 anf_paths() { print "${C_Y}=== PATHS ===${C_0}"; print "  ${C_T}Cache:${C_0} $ANF_CACHE_DIR"; print "  ${C_T}Log:${C_0} $AF_LOG_FILE"; }
 
@@ -2848,11 +2848,18 @@ typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
 # Nama polos saja (help -> anf_help, scan -> anf_scan, run -> anf_run, dst.).
 # Prefix "/" tidak dipakai: zsh memperlakukan "/cmd" sebagai path, sehingga
 # alias berprefix garis-miring itu tidak pernah aktif (dibersihkan di v1.0.3).
+# v1.0.4: JANGAN menimpa biner nyata (stat, install, proxy, whois, nikto,
+# gobuster, whatweb, tor, hermes). Bila nama itu ada di PATH, alias dilewati;
+# perintah ANF tetap bisa dipanggil sebagai `anf <cmd>`.
+typeset -ga _ANF_SHADOWED=()
 for _cmd in "${_ANF_CMD_NAMES[@]}"; do
     _func="anf_${_cmd//-/_}"
-    if (( ${+functions[$_func]} )); then
-        alias "$_cmd"="$_func"
+    (( ${+functions[$_func]} )) || continue
+    if (( ${+commands[$_cmd]} )); then
+        _ANF_SHADOWED+=("$_cmd")
+        continue
     fi
+    alias "$_cmd"="$_func"
 done
 unset _cmd _func
 
@@ -2988,6 +2995,11 @@ _anf_log ok "ANF v${ANF_VERSION} loaded. Type 'help'"
 # ==============================================================================
 # SECTION 13 — Tool Integrations (Auto-generated)
 # ==============================================================================
+# v1.0.4: seluruh blok ini OPT-IN. Default ANF tidak mengganti cat/ls/grep/cd/
+# less/fd/log dengan alternatif, supaya shell berperilaku seperti zsh biasa dan
+# tidak bentrok dengan kebiasaan/tool lain. Aktifkan dengan `ANF_UX_ALIASES=1`
+# di ~/.config/anf-cyber/anfrc (atau `ANF_UX_ALIASES=1 anf`).
+if [[ "${ANF_UX_ALIASES:-0}" == "1" ]]; then
 
 # bat — cat replacement
 if command -v bat >/dev/null 2>&1; then
@@ -3121,3 +3133,5 @@ command -v pipx >/dev/null 2>&1 && export PATH="$HOME/.local/bin:$PATH"
 
 # rclone
 command -v rclone >/dev/null 2>&1 && alias rc='rclone'
+
+fi   # ANF_UX_ALIASES (SECTION 13 opt-in)

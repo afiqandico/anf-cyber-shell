@@ -1,5 +1,23 @@
 # CHANGELOG — ANF Cyber Shell
 
+## v1.0.4-cyber (Anti-bentrok: alias tidak lagi menimpa biner/tool dasar — 2026-11-06)
+
+**Tema: `anf` berhenti "membajak" nama perintah lain.** Sebelum ini shell ANF diam-diam
+mengganti `stat`, `install`, `proxy`, `whois`, `nikto`, `gobuster`, `whatweb`, `tor`,
+`hermes` — dan (di dalam shell interaktif) `ls`, `cat`, `grep`, `less`, `cd`, `fd`, `log`.
+
+| # | Perilaku lama | Perilaku v1.0.4 | Bukti |
+|---|----------------|-----------------|-------|
+| 1 | alias `_ANF_CMD_NAMES` dibuat untuk semua nama, termasuk yang punya biner di PATH | alias **dilewati** bila `${commands[<nama>]}` ada; nama dicatat di `_ANF_SHADOWED` | gate #11 `bentrok=0`; `anf config` → `Tanpa alias (bentrok biner): 9 nikto, tor, stat, …` |
+| 2 | `ls`/`cat`/`grep`/`less`/`cd`/`fd`/`log` diganti (eza/bat/rg/zoxide/lnav) setiap sesi | SECTION 13 jadi **opt-in**: `ANF_UX_ALIASES=0` (default) = shell berperilaku seperti zsh biasa | gate #11 `ux_ls=0`; `alias ls` kosong |
+| 3 | `hermes` di dalam ANF menunjuk `anf_hermes`, bukan CLI Hermes | `whence -p hermes` → `~/.local/bin/hermes` | uji runtime: `stat=/usr/bin/stat hermes=/home/afiq/.local/bin/hermes` |
+
+Cara pakai setelah perubahan:
+- Perintah ANF yang namanya bentrok: `anf stat file.csv`, `anf whois domain`, `anf install pkg` (dispatcher tidak terpengaruh alias).
+- Perintah ANF yang tidak bentrok tetap bisa dipanggil pendek di shell ANF: `scan`, `help`, `run`, `doctor`.
+- Mau UX alias lama kembali: `export ANF_UX_ALIASES=1` di `~/.config/anf-cyber/anfrc`.
+
+
 ## v1.0.3-cyber (Higiene: dead code + symlink-race + umask — 2026-11-06)
 
 **Tema: bereskan temuan audit F-E/F-F/F-G/F-I. Tidak ada perubahan perilaku command.**

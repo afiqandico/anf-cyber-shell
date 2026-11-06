@@ -3,7 +3,7 @@
 # ANF CYBER SHELL — Verify Script (gate baseline)
 # Menjalankan gate verifikasi aman (non-destruktif) terhadap script inti:
 #   1. zsh -n                        → parse error check
-#   2. version string konsisten      → 1.0.3-cyber
+#   2. version string konsisten      → 1.0.4-cyber
 #   3. alias /cmd -> anf_<fn> mapping (setiap entri _ANF_CMD_DESC punya fungsi)
 #   4. smoke test command inti aman (hash/encode/status) di subshell
 #   5. kotak banner/help sejajar (lebar dihitung per karakter)
@@ -28,7 +28,7 @@ if zsh -n "$F" >/dev/null 2>&1; then ok "zsh -n syntax"; else bad "zsh -n syntax
 
 # 2) Version
 V="$(grep -m1 -oE 'export ANF_VERSION="[^"]+"' "$F" | sed 's/.*"\(.*\)"/\1/')"
-EXPECT="1.0.3-cyber"
+EXPECT="1.0.4-cyber"
 if [[ "$V" == "$EXPECT" ]]; then ok "ANF_VERSION=$V"; else bad "ANF_VERSION=$V (harus $EXPECT)"; fi
 
 # 3) Cache dir
@@ -109,6 +109,19 @@ else
   bad "anf_run tidak sesuai -> $RUNRES"
 fi
 rm -rf "$RUND"
+
+# 11) Anti-bentrok: tidak ada alias ANF yang menimpa biner nyata, dan UX alias
+#     (ls/cat/grep/cd) mati secara default; perintah ANF tetap lewat `anf <cmd>`.
+CB="$(mktemp -d "${TMPDIR:-/tmp}/anf-conflict.XXXXXX")"
+CONF="$(zsh -c 'source "$1" 1>"$2" 2>&1; b=0; for k in ${(k)_ANF_CMD_DESC}; do
+  [[ -n ${aliases[$k]:-} && -n ${commands[$k]:-} ]] && b=$((b+1)); done
+  print -r -- "bentrok=$b ux_ls=${+aliases[ls]} shadowed=$#_ANF_SHADOWED"' zsh "$F" "$CB/sink" 2>&1 | grep -E '^bentrok=')"
+rm -rf "$CB"
+if [[ "$CONF" == "bentrok=0 ux_ls=0"* ]]; then
+  ok "anti-bentrok: 0 alias menimpa biner, UX alias off (${CONF})"
+else
+  bad "anti-bentrok: $CONF"
+fi
 
 # 12) Hygiene kode: tidak menulis ke nama tetap di /tmp (rawan symlink-race) dan
 #     tidak ada alias berprefix "/" (mati di zsh, hanya menyesatkan audit).
