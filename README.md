@@ -19,9 +19,9 @@ I would rather state the boundaries up front than have a reviewer discover them.
 
 | This is | This is not |
 |---|---|
-| A dispatcher + artefact layout + audit trail over ~20 external security CLIs | A new scanner, exploit engine, or C2 implementation |
+| A dispatcher + artefact layout + audit trail over 16 external security CLIs | A new scanner, exploit engine, or C2 implementation |
 | Offensive commands that wrap `nmap`, `nuclei`, `hydra`, `ncrack`, `ssh`, `linpeas`, `subfinder`, `holehe` … | Weaponised tooling — every offensive command calls a binary you installed and fails closed if it is absent |
-| A command guard (*GuardFall v2*) that canonicalises and rejects 8 classes of shell-injection / destructive patterns before passthrough execution | A sandbox or a security boundary |
+| A command guard (*GuardFall v2*) that canonicalises and rejects shell-injection / destructive patterns before passthrough execution | A sandbox or a security boundary |
 | Statistical C2-detection analytics in Python (Shannon entropy + bootstrap CI, chi-square/Jitter/R(1) beaconing, Isolation Forest, ROC sweep) | A validated detector with published accuracy claims |
 | A verification gate of 15 automated checks that runs in CI | A unit-test suite — see *Known limitations* |
 
