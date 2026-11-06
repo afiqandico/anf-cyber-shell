@@ -1,5 +1,20 @@
 # CHANGELOG — ANF Cyber Shell
 
+## v1.0.2-cyber (Passthrough terkontrol `anf run` — 2026-11-06)
+
+**Tema: satu pintu eksplisit untuk perintah eksternal, sesudah audit statis membuktikan dispatcher lama tidak punya passthrough sama sekali.**
+
+### Fitur
+| # | Perubahan | Alasan | Bukti |
+|---|-----------|--------|-------|
+| 1 | `anf run -- <cmd> [args]` (`anf_run`) | Satu-satunya jalan menjalankan perintah eksternal, tanpa menambah kapabilitas baru: tanpa `eval`, `--` dibuang, argumen kosong ditolak, exit code diteruskan, tiap panggilan dicatat ke `$AF_LOG_FILE` | gate #11 + 3 gate manual |
+| 2 | Kategori help `Passthrough:run` | Command baru harus ditemukan lewat `help`, tidak tersembunyi | `anf help` menampilkan blok Passthrough |
+
+### Catatan keamanan (hasil audit statis)
+- `"$@"` tidak di-reparse → alias ANF (`stat`, `install`, `proxy`, …) **tidak** ikut terpanggil: `anf run -- stat -c %s` tetap `/usr/bin/stat` (dijaga gate #11).
+- Tidak ada `eval` di jalur dispatch launcher. Tiga `eval` yang ada sudah ditinjau: selftest (1816, string literal), `anf_ensure` (2659, digerbangi `read -q`, paket dari tabel internal), `zoxide init` (3031, keluaran biner lokal).
+
+
 ## v1.0.1-cyber (Bugfix: kotak sejajar + lookup binary tahan-alias — 2026-09-10)
 
 **Tema: dua bug yang muncul di pemakaian harian — border banner/help meleset dan `hermes` gagal dipanggil dari dalam shell.**

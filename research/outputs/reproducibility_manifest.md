@@ -1,14 +1,14 @@
 # Reproducibility Manifest — ANF Cyber Shell
 
-**Versi:** 1.0.1-cyber
-**Tanggal verifikasi:** 2026-09-10
+**Versi:** 1.0.2-cyber
+**Tanggal verifikasi:** 2026-11-06
 **Command:** `make verify` (atau `bash scripts/verify.sh`)
 
 ## Baseline gates (semua PASS, non-destruktif)
 | # | Gate | Metode | Status |
 |---|------|--------|--------|
 | 1 | Parse syntax zsh | `zsh -n code/anf_cyber_shell.zsh` | ✅ |
-| 2 | Versi konsisten | `ANF_VERSION == 1.0.0-cyber` | ✅ |
+| 2 | Versi konsisten | `ANF_VERSION == 1.0.2-cyber` | ✅ |
 | 3 | Cache dir terpisah | `~/.cache/anf-cyber` (tidak menabrak research) | ✅ |
 | 4 | Mapping `/cmd`→fungsi | setiap entri `_ANF_CMD_DESC` punya `anf_<cmd>` | ✅ (utuh) |
 | 5 | Smoke command inti | `encode test`→`dGVzdA==`, `hash abc`→MD5 `90015098...` | ✅ |
@@ -17,6 +17,7 @@
 | 8 | Kotak banner/help sejajar | lebar per karakter (python3), `anf_help` + `anf_banner` | ✅ (2 kotak, 0 misaligned) |
 | 9 | Lookup binary tahan-alias | tidak ada `command -v <nama-command>` di script inti | ✅ |
 | 10 | `anf_hermes` fungsional | `anf_hermes_locate` → path executable nyata (skip bila hermes absen) | ✅ |
+| 11 | `anf_run` passthrough | `anf run -- sh -c 'exit 7'` → 7; `anf run -- stat -c %s` == ukuran file asli (alias tidak menimpa); tanpa argumen → exit 1 | ✅ |
 
 ## Bugfix v1.0.1-cyber (2026-09-10)
 | Gejala | Akar masalah | Perbaikan | Bukti |

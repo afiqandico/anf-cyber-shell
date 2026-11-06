@@ -17,7 +17,7 @@ setopt INTERACTIVE_COMMENTS GLOB_DOTS NO_LIST_BEEP NO_BEEP NO_BANG_HIST
 autoload -Uz is-at-least
 is-at-least 5.0 "${ZSH_VERSION}" || { print -u2 "ERROR: zsh >= 5.0 required"; return 1; }
 
-export ANF_VERSION="1.0.1-cyber"
+export ANF_VERSION="1.0.2-cyber"
 
 # ==============================================================================
 # SECTION 1 — Colors, Glyphs, Directories, PATH
@@ -2809,6 +2809,7 @@ anf_help() {
 
         local -a categories=(
         "Core:help status set-target reset-target workspace note doctor config paths version install update selftest targets log"
+        "Passthrough:run"
         "C2 Framework:c2-start c2-stop c2-sessions c2-payload c2-interact c2-exfil c2-decode"
         "Recon:scan subdomains subdomains-json dns whois quickrecon amass gobuster nikto whatweb wifisurvey monitor mac pilgrims"
         "OSINT:osint-email osint-phone cloud-enum wayback"
@@ -3112,3 +3113,25 @@ command -v pipx >/dev/null 2>&1 && export PATH="$HOME/.local/bin:$PATH"
 
 # rclone
 command -v rclone >/dev/null 2>&1 && alias rc='rclone'
+
+# ==============================================================================
+# SECTION 17 — Passthrough terkontrol (v1.0.2-cyber)
+# `anf run -- <cmd> [args]` = satu-satunya pintu menjalankan perintah eksternal
+# dari ANF. Tanpa eval, setiap pemanggilan dicatat ke $ANF_LOG, exit code
+# diteruskan. Alias ANF (stat/install/proxy/...) TIDAK ikut terpanggil karena
+# "$@" tidak di-reparse sebagai alias — jadi `anf run -- stat` tetap /usr/bin/stat.
+# ==============================================================================
+anf_run() {
+    [[ "${1:-}" == "--" ]] && shift
+    if [[ $# -eq 0 ]]; then
+        _anf_log err "Usage: anf run -- <command> [args...]"
+        return 1
+    fi
+    _anf_log info "run: $*"
+    "$@"
+}
+_ANF_CMD_DESC+=( \
+    run    "Jalankan perintah eksternal: anf run -- <cmd> [args]" \
+)
+typeset -ga _ANF_CMD_NAMES=(${(k)_ANF_CMD_DESC})
+alias "run"="anf_run"

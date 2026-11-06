@@ -3,7 +3,7 @@
 # ANF CYBER SHELL — Verify Script (gate baseline)
 # Menjalankan gate verifikasi aman (non-destruktif) terhadap script inti:
 #   1. zsh -n                        → parse error check
-#   2. version string konsisten      → 1.0.1-cyber
+#   2. version string konsisten      → 1.0.2-cyber
 #   3. alias /cmd -> anf_<fn> mapping (setiap entri _ANF_CMD_DESC punya fungsi)
 #   4. smoke test command inti aman (hash/encode/status) di subshell
 #   5. kotak banner/help sejajar (lebar dihitung per karakter)
@@ -28,7 +28,7 @@ if zsh -n "$F" >/dev/null 2>&1; then ok "zsh -n syntax"; else bad "zsh -n syntax
 
 # 2) Version
 V="$(grep -m1 -oE 'export ANF_VERSION="[^"]+"' "$F" | sed 's/.*"\(.*\)"/\1/')"
-EXPECT="1.0.1-cyber"
+EXPECT="1.0.2-cyber"
 if [[ "$V" == "$EXPECT" ]]; then ok "ANF_VERSION=$V"; else bad "ANF_VERSION=$V (harus $EXPECT)"; fi
 
 # 3) Cache dir
@@ -90,6 +90,25 @@ if command -v hermes >/dev/null 2>&1; then
 else
   echo "  [SKIP] hermes tidak terpasang"
 fi
+
+# 10) anf_run: passthrough terkontrol (v1.0.2). Menjaga tiga sifat sekaligus:
+#     exit code diteruskan, `anf run -- stat` TIDAK kena alias anf_stat, dan
+#     argumen kosong ditolak dengan exit 1.
+RUND="$(mktemp -d "${TMPDIR:-/tmp}/anf-run-gate.XXXXXX")"
+cat > "$RUND/t.zsh" <<'EOS'
+source "$ANF_F"
+anf_run -- sh -c 'exit 7'; print -r -- "exit7=$?"
+out="$(anf_run -- stat -c %s "$ANF_F" 2>/dev/null)"; print -r -- "stat=$out"
+anf_run -- >/dev/null 2>&1; print -r -- "empty=$?"
+EOS
+RUNRES="$(ANF_F="$F" timeout 30 zsh "$RUND/t.zsh" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g')"
+EXPECT_BYTES="$(stat -c %s "$F")"
+if [[ "$RUNRES" == *"exit7=7"* && "$RUNRES" == *"stat=$EXPECT_BYTES"* && "$RUNRES" == *"empty=1"* ]]; then
+  ok "anf_run: exit code, stat asli (tanpa alias), argumen kosong ditolak"
+else
+  bad "anf_run tidak sesuai -> $RUNRES"
+fi
+rm -rf "$RUND"
 
 echo
 echo "RESULT: PASS=$PASS FAIL=$FAIL"
