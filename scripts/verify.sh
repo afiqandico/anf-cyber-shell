@@ -147,6 +147,19 @@ else
   ok "opsec: anfrc belum ada, gate perms dilewati"
 fi
 
+# 15) Launcher sinkron: bila ~/.local/bin/anf ada, isinya harus identik dengan
+#     bin/anf di repo (repo sempat tertinggal: animasi + pintu research/cyber
+#     hanya ada di salinan terpasang). Gate dilewati bila belum dipasang.
+if [[ -f "$HOME/.local/bin/anf" ]]; then
+  if cmp -s "$HOME/.local/bin/anf" "$ROOT/bin/anf"; then
+    ok "launcher: bin/anf == ~/.local/bin/anf"
+  else
+    bad "launcher: bin/anf berbeda dari ~/.local/bin/anf (drift)"
+  fi
+else
+  ok "launcher: ~/.local/bin/anf tidak ada (gate dilewati)"
+fi
+
 echo
 echo "RESULT: PASS=$PASS FAIL=$FAIL"
 [[ $FAIL -eq 0 ]]

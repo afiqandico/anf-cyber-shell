@@ -21,6 +21,7 @@
 | 12 | Higiene kode | 0 penulisan ke nama tetap di `/tmp` (pakai `mktemp`), 0 `alias "/cmd"` | ✅ |
 | 13 | OPSEC runtime | `umask 077` di `anfrc`; 0 entri `~/.cache/anf-cyber` yang group/other-accessible | ✅ |
 | 14 | Anti-bentrok alias | runtime `alias menimpa biner: 0`; nama yang punya biner nyata (`stat`, `install`, `proxy`, `whois`, `nikto`, `gobuster`, `whatweb`, `tor`, `hermes`) dilewati dan dicatat `_ANF_SHADOWED`; `ANF_UX_ALIASES=0` default (ls/cat/grep/cd tidak diganti) | ✅ |
+| 15 | Launcher sinkron | `bin/anf` di repo byte-identik dengan `~/.local/bin/anf` (animasi + pintu `research`/`cyber` hanya ada di versi terpasang sebelumnya); progres animasi dihitung dari jumlah langkah nyata → maksimum 100% (bukan 103%) | ✅ |
 
 ## Bugfix v1.0.1-cyber (2026-09-10)
 | Gejala | Akar masalah | Perbaikan | Bukti |

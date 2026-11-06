@@ -17,6 +17,13 @@ Cara pakai setelah perubahan:
 - Perintah ANF yang tidak bentrok tetap bisa dipanggil pendek di shell ANF: `scan`, `help`, `run`, `doctor`.
 - Mau UX alias lama kembali: `export ANF_UX_ALIASES=1` di `~/.config/anf-cyber/anfrc`.
 
+### Tambahan setelah commit awal (ditemukan saat pemakaian nyata)
+
+| Gejala | Akar masalah | Perbaikan |
+|--------|--------------|-----------|
+| Animasi masuk berhenti di **103%** | loop berjalan 4 fase × 8 langkah (`_anf_t` maksimum 32) tapi pembagi di-hardcode `31` | pembagi dihitung dari jumlah langkah: `_anf_steps=$(( ${#_anf_phases[@]} * 8 ))` → maksimum **100%**, bar penuh 26/26 |
+| Repo `bin/anf` tertinggal dari launcher terpasang | launcher diedit langsung di `~/.local/bin/anf` (126→128 baris: animasi + pintu `research`) tanpa disalin balik | launcher diperbaiki lalu **disalin ke `bin/anf`**; gate #14 membandingkan keduanya (`cmp -s`) dan gagal bila drift |
+
 
 ## v1.0.3-cyber (Higiene: dead code + symlink-race + umask — 2026-11-06)
 
