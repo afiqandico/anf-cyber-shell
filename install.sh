@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # ANF CYBER SHELL — Installer
-# Memasang launcher ke /usr/local/bin/anf-cyber dan config dist ke ~/.config/anf-cyber/.
-# Aman dijalankan berulang (idempotent). Tidak menimpa anfrc yang sudah ada.
+# Installs the launcher to /usr/local/bin/anf-cyber and the dist config to ~/.config/anf-cyber/.
+# Safe to run repeatedly (idempotent). Does not overwrite an existing anfrc.
 #
 # Usage: ./install.sh [--prefix /usr/local] [--skip-config]
 # ==============================================================================
