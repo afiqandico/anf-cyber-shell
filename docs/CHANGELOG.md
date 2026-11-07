@@ -2,136 +2,136 @@
 
 ## Unreleased — publication prep (2026-11-06)
 
-Repo disiapkan untuk publikasi terbuka. Tidak ada perubahan perilaku command.
+The repository was prepared for public release. No command behaviour changed.
 
-| Perubahan | Alasan | Bukti |
+| Change | Reason | Evidence |
 |-----------|--------|-------|
-| Hapus 3 definisi fungsi duplikat (`anf_osint_email`, `anf_autopwn`, `anf_sysinfo` — salinan lama yang sudah di-*shadow* definisi berikutnya) | `grep -c '^anf_[a-z_]*()'` melaporkan 108 padahal hanya 105 nama unik; duplikat mati menyesatkan audit | 108 → **105** definisi = 105 nama unik; `make verify` tetap `PASS=15 FAIL=0` |
-| `install.sh`: inisialisasi `CFG_DIR` sebelum blok `if` | `./install.sh --prefix X --skip-config` gagal `CFG_DIR: unbound variable` (exit 1) walau instalasi sukses | sebelum: `line 49: CFG_DIR: unbound variable`; sesudah: exit 0 |
-| `README.md` ditulis ulang dalam bahasa Inggris | Syarat publikasi portofolio: audiens internasional | angka diukur ulang (9.251 baris zsh, 105 fungsi, 110 command/14 grup) |
-| Tambah `.github/workflows/ci.yml` | Gate `make verify` harus jalan di CI, bukan hanya lokal | `zsh -n` semua file + `make verify` di `ubuntu-latest` |
-| Redaksi path lokal absolut (`/home/afiq/...`, `~/Documents/...`) di `README.md`, `NOTICE.md`, `docs/CHANGELOG.md`, `research/outputs/` | Higiene publikasi: struktur direktori rumah tidak perlu terekspos | `grep -rIn '/home/afiq\|~/Documents'` → 0 hasil di luar `research/archive/` |
+| Removed 3 duplicate function definitions (`anf_osint_email`, `anf_autopwn`, `anf_sysinfo` — stale copies already *shadowed* by the later definitions) | `grep -c '^anf_[a-z_]*()'` reported 108 although there were only 105 unique names; dead duplicates mislead the audit | 108 → **105** definitions = 105 unique names; `make verify` still `PASS=15 FAIL=0` |
+| `install.sh`: initialise `CFG_DIR` before the `if` block | `./install.sh --prefix X --skip-config` failed with `CFG_DIR: unbound variable` (exit 1) even though the install succeeded | before: `line 49: CFG_DIR: unbound variable`; after: exit 0 |
+| `README.md` rewritten in English | Portfolio publication requirement: international audience | numbers re-measured (9,251 zsh lines, 105 functions, 110 commands/14 groups) |
+| Added `.github/workflows/ci.yml` | The `make verify` gate must run in CI, not only locally | `zsh -n` on all files + `make verify` on `ubuntu-latest` |
+| Redacted absolute local paths (`/home/afiq/...`, `~/Documents/...`) in `README.md`, `NOTICE.md`, `docs/CHANGELOG.md`, `research/outputs/` | Publication hygiene: the home directory layout need not be exposed | `grep -rIn '/home/afiq\|~/Documents'` → 0 hits outside `research/archive/` |
 
-## v1.0.4-cyber (Anti-bentrok: alias tidak lagi menimpa biner/tool dasar — 2026-11-06)
+## v1.0.4-cyber (Anti-collision: aliases no longer override binaries/basic tools — 2026-11-06)
 
-**Tema: `anf` berhenti "membajak" nama perintah lain.** Sebelum ini shell ANF diam-diam
-mengganti `stat`, `install`, `proxy`, `whois`, `nikto`, `gobuster`, `whatweb`, `tor`,
-`hermes` — dan (di dalam shell interaktif) `ls`, `cat`, `grep`, `less`, `cd`, `fd`, `log`.
+**Theme: `anf` stopped "hijacking" other command names.** Before this, the ANF shell silently
+replaced `stat`, `install`, `proxy`, `whois`, `nikto`, `gobuster`, `whatweb`, `tor`,
+`hermes` — and (inside the interactive shell) `ls`, `cat`, `grep`, `less`, `cd`, `fd`, `log`.
 
-| # | Perilaku lama | Perilaku v1.0.4 | Bukti |
+| # | Old behaviour | v1.0.4 behaviour | Evidence |
 |---|----------------|-----------------|-------|
-| 1 | alias `_ANF_CMD_NAMES` dibuat untuk semua nama, termasuk yang punya biner di PATH | alias **dilewati** bila `${commands[<nama>]}` ada; nama dicatat di `_ANF_SHADOWED` | gate #11 `bentrok=0`; `anf config` → `Tanpa alias (bentrok biner): 9 nikto, tor, stat, …` |
-| 2 | `ls`/`cat`/`grep`/`less`/`cd`/`fd`/`log` diganti (eza/bat/rg/zoxide/lnav) setiap sesi | SECTION 13 jadi **opt-in**: `ANF_UX_ALIASES=0` (default) = shell berperilaku seperti zsh biasa | gate #11 `ux_ls=0`; `alias ls` kosong |
-| 3 | `hermes` di dalam ANF menunjuk `anf_hermes`, bukan CLI Hermes | `whence -p hermes` → `~/.local/bin/hermes` | uji runtime: `stat=/usr/bin/stat hermes=~/.local/bin/hermes` |
+| 1 | `_ANF_CMD_NAMES` aliases were created for every name, including those with a binary in PATH | the alias is **skipped** when `${commands[<name>]}` exists; the name is recorded in `_ANF_SHADOWED` | gate #11 `bentrok=0`; `anf config` → `Tanpa alias (bentrok biner): 9 nikto, tor, stat, …` |
+| 2 | `ls`/`cat`/`grep`/`less`/`cd`/`fd`/`log` were replaced (eza/bat/rg/zoxide/lnav) every session | SECTION 13 became **opt-in**: `ANF_UX_ALIASES=0` (default) = the shell behaves like plain zsh | gate #11 `ux_ls=0`; `alias ls` empty |
+| 3 | `hermes` inside ANF pointed at `anf_hermes`, not the Hermes CLI | `whence -p hermes` → `~/.local/bin/hermes` | runtime test: `stat=/usr/bin/stat hermes=~/.local/bin/hermes` |
 
-Cara pakai setelah perubahan:
-- Perintah ANF yang namanya bentrok: `anf stat file.csv`, `anf whois domain`, `anf install pkg` (dispatcher tidak terpengaruh alias).
-- Perintah ANF yang tidak bentrok tetap bisa dipanggil pendek di shell ANF: `scan`, `help`, `run`, `doctor`.
-- Mau UX alias lama kembali: `export ANF_UX_ALIASES=1` di `~/.config/anf-cyber/anfrc`.
+How to use it after the change:
+- ANF commands whose names collide: `anf stat file.csv`, `anf whois domain`, `anf install pkg` (the dispatcher is unaffected by aliases).
+- ANF commands that do not collide can still be called short inside the ANF shell: `scan`, `help`, `run`, `doctor`.
+- Want the old UX aliases back: `export ANF_UX_ALIASES=1` in `~/.config/anf-cyber/anfrc`.
 
-### Tambahan setelah commit awal (ditemukan saat pemakaian nyata)
+### Additions after the initial commit (found during real use)
 
-| Gejala | Akar masalah | Perbaikan |
+| Symptom | Root cause | Fix |
 |--------|--------------|-----------|
-| Animasi masuk berhenti di **103%** | loop berjalan 4 fase × 8 langkah (`_anf_t` maksimum 32) tapi pembagi di-hardcode `31` | pembagi dihitung dari jumlah langkah: `_anf_steps=$(( ${#_anf_phases[@]} * 8 ))` → maksimum **100%**, bar penuh 26/26 |
-| Repo `bin/anf` tertinggal dari launcher terpasang | launcher diedit langsung di `~/.local/bin/anf` (126→128 baris: animasi + pintu `research`) tanpa disalin balik | launcher diperbaiki lalu **disalin ke `bin/anf`**; gate #14 membandingkan keduanya (`cmp -s`) dan gagal bila drift |
+| Entry animation stopped at **103%** | the loop ran 4 phases × 8 steps (`_anf_t` maximum 32) but the divisor was hardcoded to `31` | the divisor is computed from the step count: `_anf_steps=$(( ${#_anf_phases[@]} * 8 ))` → maximum **100%**, full bar 26/26 |
+| The repo `bin/anf` lagged behind the installed launcher | the launcher was edited directly in `~/.local/bin/anf` (126→128 lines: animation + `research` door) without being copied back | the launcher was fixed and then **copied to `bin/anf`**; gate #14 compares the two (`cmp -s`) and fails on drift |
 
 
-## v1.0.3-cyber (Higiene: dead code + symlink-race + umask — 2026-11-06)
+## v1.0.3-cyber (Hygiene: dead code + symlink race + umask — 2026-11-06)
 
-**Tema: bereskan temuan audit F-E/F-F/F-G/F-I. Tidak ada perubahan perilaku command.**
+**Theme: clear the F-E/F-F/F-G/F-I audit findings. No command behaviour changed.**
 
-| # | Temuan | Perbaikan | Bukti |
+| # | Finding | Fix | Evidence |
 |---|--------|-----------|-------|
-| 1 | F-E: `anf_c2_decode` menulis `/tmp/exfil_$(date +%H%M%S).bin` (nama bisa ditebak, rawan symlink di `/tmp` multi-user) | `mktemp "${TMPDIR:-/tmp}/anf-exfil-XXXXXX.bin"` | gate #11 (0 pola `> /tmp/<nama-tetap>`) |
-| 2 | F-F: cache `700` tapi anaknya `775`/`664` karena umask login `002` | `umask 077` di `anfrc` (dibaca launcher sebelum lib) + `chmod 700/600` retroaktif | gate #12 (0 entri group/other-accessible) |
-| 3 | F-G: 4 blok `alias "/$_cmd"` — mati di zsh, menyesatkan audit | dihapus; satu loop alias nama polos di akhir file tetap jalan | gate #11 (`0 alias "/"`), `help`/`scan` masih berfungsi |
-| 4 | F-I: descriptor `matrix` tanpa fungsi `anf_matrix` (entri yatim, tidak aktif di runtime) | baris descriptor dihapus | harness audit: static 130 baris, yatim `[]`, runtime 110 key / 0 tanpa fungsi |
+| 1 | F-E: `anf_c2_decode` wrote `/tmp/exfil_$(date +%H%M%S).bin` (guessable name, symlink-prone in multi-user `/tmp`) | `mktemp "${TMPDIR:-/tmp}/anf-exfil-XXXXXX.bin"` | gate #11 (0 patterns matching `> /tmp/<fixed-name>`) |
+| 2 | F-F: cache `700` but its children `775`/`664` because the login umask was `002` | `umask 077` in `anfrc` (read by the launcher before the lib) + retroactive `chmod 700/600` | gate #12 (0 group/other-accessible entries) |
+| 3 | F-G: 4 `alias "/$_cmd"` blocks — dead in zsh, misleading for the audit | removed; a single plain-name alias loop at the end of the file still works | gate #11 (`0 alias "/"`), `help`/`scan` still work |
+| 4 | F-I: a `matrix` descriptor with no `anf_matrix` function (orphan entry, inactive at runtime) | the descriptor line was removed | audit harness: static 130 lines, orphans `[]`, runtime 110 keys / 0 without a function |
 
-Catatan: `anf_run` dipindahkan ke **sebelum** loop alias (v1.0.2 menaruhnya di akhir file sehingga `run` tidak pernah dapat alias nama polos). Dispatch `anf run` sendiri tidak terpengaruh.
+Note: `anf_run` was moved to **before** the alias loop (v1.0.2 put it at the end of the file so `run` never received a plain-name alias). `anf run` dispatch itself is unaffected.
 
 
-## v1.0.2-cyber (Passthrough terkontrol `anf run` — 2026-11-06)
+## v1.0.2-cyber (Controlled passthrough `anf run` — 2026-11-06)
 
-**Tema: satu pintu eksplisit untuk perintah eksternal, sesudah audit statis membuktikan dispatcher lama tidak punya passthrough sama sekali.**
+**Theme: one explicit door for external commands, after a static audit proved the old dispatcher had no passthrough at all.**
 
-### Fitur
-| # | Perubahan | Alasan | Bukti |
+### Features
+| # | Change | Reason | Evidence |
 |---|-----------|--------|-------|
-| 1 | `anf run -- <cmd> [args]` (`anf_run`) | Satu-satunya jalan menjalankan perintah eksternal, tanpa menambah kapabilitas baru: tanpa `eval`, `--` dibuang, argumen kosong ditolak, exit code diteruskan, tiap panggilan dicatat ke `$AF_LOG_FILE` | gate #11 + 3 gate manual |
-| 2 | Kategori help `Passthrough:run` | Command baru harus ditemukan lewat `help`, tidak tersembunyi | `anf help` menampilkan blok Passthrough |
+| 1 | `anf run -- <cmd> [args]` (`anf_run`) | The only way to run an external command, without adding new capability: no `eval`, `--` is stripped, empty arguments rejected, the exit code is forwarded, every call is logged to `$AF_LOG_FILE` | gate #11 + 3 manual gates |
+| 2 | `Passthrough:run` help category | A new command must be discoverable through `help`, not hidden | `anf help` shows the Passthrough block |
 
-### Catatan keamanan (hasil audit statis)
-- `"$@"` tidak di-reparse → alias ANF (`stat`, `install`, `proxy`, …) **tidak** ikut terpanggil: `anf run -- stat -c %s` tetap `/usr/bin/stat` (dijaga gate #11).
-- Tidak ada `eval` di jalur dispatch launcher. Tiga `eval` yang ada sudah ditinjau: selftest (1816, string literal), `anf_ensure` (2659, digerbangi `read -q`, paket dari tabel internal), `zoxide init` (3031, keluaran biner lokal).
+### Security notes (static audit result)
+- `"$@"` is not re-parsed → ANF aliases (`stat`, `install`, `proxy`, …) are **not** invoked: `anf run -- stat -c %s` stays `/usr/bin/stat` (guarded by gate #11).
+- There is no `eval` on the launcher dispatch path. The three existing `eval`s were reviewed: selftest (1816, literal string), `anf_ensure` (2659, gated by `read -q`, packages from an internal table), `zoxide init` (3031, local binary output).
 
 
-## v1.0.1-cyber (Bugfix: kotak sejajar + lookup binary tahan-alias — 2026-09-10)
+## v1.0.1-cyber (Bugfix: aligned boxes + alias-resistant binary lookup — 2026-09-10)
 
-**Tema: dua bug yang muncul di pemakaian harian — border banner/help meleset dan `hermes` gagal dipanggil dari dalam shell.**
+**Theme: two bugs that surfaced in daily use — banner/help borders off by a few columns, and `hermes` failing when called from inside the shell.**
 
 ### Fix
-| # | Gejala | Akar masalah | Perbaikan |
+| # | Symptom | Root cause | Fix |
 |---|--------|--------------|-----------|
-| 1 | Border banner & judul `help` miring (baris judul lebih lebar/melenceng dari border); di banner border kanan hilang sama sekali | Border `═══` ditulis hardcoded dengan asumsi panjang judul tetap, padahal judul memuat `${ANF_VERSION}` | Helper `_anf_box <warna> "judul" ["baris-2" ...]` — lebar border dihitung dari isi. Dipakai di **7 tempat**: banner, header `help`, dan 5 header analitik (GuardFall, Shannon, Beaconing, Isolation Forest, ML compare) |
-| 2 | `hermes` / `/hermes` dari dalam ANF → `command not found: alias hermes=anf_hermes` | Setiap command ANF didaftarkan sebagai **alias nama polos**, jadi `command -v hermes` mengembalikan TEKS ALIAS (bukan path); teks itu disimpan ke `HERMES_BIN` lalu dieksekusi | Helper `_anf_which` (pakai `whence -p`, hanya menyisir PATH) + `_anf_has_bin`; dipakai di `anf_hermes_locate`, `anf_gen`, `anf_doctor`, dan wrapper tool |
+| 1 | Banner border & `help` title skewed (the title line wider/offset from the border); in the banner the right border vanished entirely | The `═══` border was written hardcoded assuming a fixed title length, although the title contains `${ANF_VERSION}` | Helper `_anf_box <color> "title" ["line-2" ...]` — the border width is computed from the content. Used in **7 places**: banner, `help` header, and 5 analytics headers (GuardFall, Shannon, Beaconing, Isolation Forest, ML compare) |
+| 2 | `hermes` / `/hermes` from inside ANF → `command not found: alias hermes=anf_hermes` | Every ANF command was registered as a **plain-name alias**, so `command -v hermes` returned the ALIAS TEXT (not a path); that text was stored in `HERMES_BIN` and then executed | Helper `_anf_which` (uses `whence -p`, walks PATH only) + `_anf_has_bin`; used in `anf_hermes_locate`, `anf_gen`, `anf_doctor`, and the tool wrappers |
 
-### Kelas bug yang sama (semua situs `command -v <nama-command>`) ikut diperbaiki
-`amass`, `gobuster`, `nikto`, `whatweb`, `suricata`, `whois`, dan loop tool `anf_doctor`.
-Sebelumnya cek tool **selalu lolos** (false-positive) walau tool tidak terpasang → user menerima "command not found" alih-alih pesan ramah.
+### The same bug class (every `command -v <command-name>` site) was fixed too
+`amass`, `gobuster`, `nikto`, `whatweb`, `suricata`, `whois`, and the `anf_doctor` tool loop.
+Previously the tool check **always passed** (false positive) even when the tool was not installed → the user got "command not found" instead of a friendly message.
 
-### Fix tambahan (ditemukan gate saat rilis ini)
-| # | Gejala | Akar masalah | Perbaikan |
+### Additional fix (found by the gate during this release)
+| # | Symptom | Root cause | Fix |
 |---|--------|--------------|-----------|
-| 3 | `ensure` tampil di `help` & `_ANF_CMD_DESC`, tapi `ensure`/`anf ensure` → `command tidak dikenal` | Saat merge research→cyber, entri `ensure` ikut masuk tapi definisi `anf_ensure` tertinggal di ANF Research Shell → gate #4 (mapping `/cmd`→fungsi) sudah **MERAH sejak merge**, dan manifest v1.0.0 keliru mengklaim mapping "utuh" | `anf_ensure` diport dari `ANF-Research-Shell` (memakai `_anf_has_bin`; label `[wajib]` kini hanya untuk flag `urgent=1` — versi research menampilkannya untuk "0" juga) | `make verify` kini **PASS=10 FAIL=0** |
+| 3 | `ensure` showed up in `help` & `_ANF_CMD_DESC`, but `ensure`/`anf ensure` → `command tidak dikenal` | When merging research→cyber, the `ensure` entry came across but the `anf_ensure` definition was left behind in ANF Research Shell → gate #4 (`/cmd`→function mapping) had been **RED since the merge**, and the v1.0.0 manifest wrongly claimed the mapping was "intact" | `anf_ensure` was ported from `ANF-Research-Shell` (uses `_anf_has_bin`; the `[wajib]` label is now only for the `urgent=1` flag — the research version showed it for "0" as well) | `make verify` is now **PASS=10 FAIL=0** |
 
-Catatan kejujuran: gate #4 merah ini **pre-existing**, bukan akibat patch kotak/alias — dibuktikan dengan menjalankan gate yang sama pada backup pra-fix (juga `missing: ensure`).
+Honesty note: this red gate #4 was **pre-existing**, not caused by the box/alias patch — proven by running the same gate on the pre-fix backup (also `missing: ensure`).
 
-### Verifikasi v1.0.1-cyber
+### Verification v1.0.1-cyber
 - `zsh -n` ✅; `anf selftest` → **PASS 16 / FAIL 0**.
-- Kotak: `anf_help` + `anf_banner` → **2 kotak, 0 misaligned** (lebar 45 & 57 kolom, dihitung per karakter).
-- `anf hermes --version` → `Hermes Agent v0.21.0 (2026.8.31)` (sebelumnya gagal total).
-- `anf doctor` → `amass`/`gobuster`/`suricata` kini jujur **MISSING** (sebelumnya selalu ◎ palsu).
-- Gate tambahan di `scripts/verify.sh`: **#7** kotak sejajar, **#8** lookup binary tahan-alias, **#9** `anf_hermes_locate` fungsional (dilewati bila hermes tidak terpasang).
-- `make verify` → **PASS=10 / FAIL=0** (gate #4 mapping hijau setelah `anf_ensure` diport).
+- Boxes: `anf_help` + `anf_banner` → **2 boxes, 0 misaligned** (widths 45 & 57 columns, computed per character).
+- `anf hermes --version` → `Hermes Agent v0.21.0 (2026.8.31)` (previously failed outright).
+- `anf doctor` → `amass`/`gobuster`/`suricata` now honestly **MISSING** (previously always a fake ◎).
+- Additional gates in `scripts/verify.sh`: **#7** aligned boxes, **#8** alias-resistant binary lookup, **#9** `anf_hermes_locate` functional (skipped when hermes is not installed).
+- `make verify` → **PASS=10 / FAIL=0** (gate #4 mapping green after `anf_ensure` was ported).
 
-### Konservatif
-- Backup pra-fix: `research/archive/anf_cyber_shell_v1.0.0-cyber_pre-fix-2026-09-10.zsh`
+### Conservative
+- Pre-fix backup: `research/archive/anf_cyber_shell_v1.0.0-cyber_pre-fix-2026-09-10.zsh`
   (sha256 `bccd633bb6272370fd53df53ca334edb75118a24d4e654235adff51f4e6cc731`, 130033 B).
-- Tidak ada fungsi yang dihapus: hanya 7 blok kotak + 8 situs cek tool diubah, ditambah 3 helper baru.
+- No functions were removed: only 7 box blocks + 8 tool-check sites were changed, plus 3 new helpers.
 
 ## v1.0.0-cyber (Rebuilt standalone — 2026-09-09)
 
-**Tema: ANF Cyber Shell dilahirkan ulang sebagai project mandiri berfokus purple-team / cyber-ops, diturunkan dari arsip ANF v1.6.0 yang memuat modul cyber lengkap.**
+**Theme: ANF Cyber Shell was reborn as a standalone project focused on purple-team / cyber-ops, derived from the ANF v1.6.0 archive that carried the complete cyber modules.**
 
-### Asal-usul & keputusan
-- Sebelum 2026-09-07: script tunggal **AFUCKINGCO → ANF Research Shell** berisi cyber ops + riset (C2, recon, OSINT, exploit, defense + math/ML).
-- 2026-09-07: modul cyber **dipisah** dari ANF Research Shell (biar repo riset bersih), diarsipkan ke
-  `ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh` (snapshot lengkap pra-split).
-- 2026-09-09: project mandiri **ANF-Cyber-Shell** dibangun ulang (**verbatim reuse**) dari arsip tersebut, dengan identitas cyber-first.
+### Origin & decisions
+- Before 2026-09-07: a single script **AFUCKINGCO → ANF Research Shell** containing cyber ops + research (C2, recon, OSINT, exploit, defense + math/ML).
+- 2026-09-07: the cyber modules were **split off** from ANF Research Shell (to keep the research repo clean), archived to
+  `ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh` (complete pre-split snapshot).
+- 2026-09-09: the standalone project **ANF-Cyber-Shell** was rebuilt (**verbatim reuse**) from that archive, with a cyber-first identity.
 
-### Perubahan atas arsip (basis = arsip v1.6.0 FULL, 123 fungsi / 2285 baris)
-- **Rebrand promo**: header, banner, & judul help → "ANF CYBER SHELL" (purple-team focus).
-- **Versi baru**: `ANF_VERSION=1.0.0-cyber` (sinkron CHANGELOG/README/manifest).
-- **Cache dir baru**: `~/.cache/anf-cyber` (tidak menabrak `~/.cache/anf` research).
-- **Help direorganisasi cyber-first**: C2, Recon, OSINT, Exploitation, Defense/Blue, Post-Exploitation, C2-Detection Analytics → front; Utilities/Integrations/Output di bawah. Semua fungsi tetap ada (tidak ada yang dihapus).
-- **Launcher `bin/anf-cyber`** (resolusi lokasi berlapis `ANF_LIB` → install → project) + `install.sh` idempotent + `anfrc.dist` + Makefile + `scripts/verify.sh` gate baseline.
-- Pendukung: LICENSE (MIT), NOTICE.md (disclaimer keamanan), README cyber-first, .gitignore (hasil operasi lokal/sensitif tidak di-track).
+### Changes over the archive (basis = v1.6.0 FULL archive, 123 functions / 2285 lines)
+- **Promo rebrand**: header, banner, & help title → "ANF CYBER SHELL" (purple-team focus).
+- **New version**: `ANF_VERSION=1.0.0-cyber` (CHANGELOG/README/manifest in sync).
+- **New cache dir**: `~/.cache/anf-cyber` (does not collide with research's `~/.cache/anf`).
+- **Help reorganised cyber-first**: C2, Recon, OSINT, Exploitation, Defense/Blue, Post-Exploitation, C2-Detection Analytics → front; Utilities/Integrations/Output below. All functions are still present (none removed).
+- **Launcher `bin/anf-cyber`** (layered location resolution `ANF_LIB` → install → project) + idempotent `install.sh` + `anfrc.dist` + Makefile + baseline gate `scripts/verify.sh`.
+- Supporting files: LICENSE (MIT), NOTICE.md (security disclaimer), cyber-first README, .gitignore (local/sensitive operation output is not tracked).
 
-### Verifikasi v1.0.0-cyber (dijalankan via `scripts/verify.sh` & `make verify`)
-- `zsh -n` → SYNTAX OK (2286 baris final).
+### Verification v1.0.0-cyber (run via `scripts/verify.sh` & `make verify`)
+- `zsh -n` → SYNTAX OK (2286 final lines).
 - `ANF_VERSION` → `1.0.0-cyber`; cache dir → `anf-cyber`.
-- Mapping `/cmd` → fungsi: **semua entri `_ANF_CMD_DESC` punya fungsi `anf_<cmd>`** (utuh, 0 missing).
-- Smoke (non-destruktif): `encode test` → `dGVzdA==`, `hash abc` → `90015098...`.
-- Launcher: `anf-cyber hash abc` → MD5 benar; `anf-cyber help` → kategori **C2 Framework** tampil.
+- `/cmd` → function mapping: **every `_ANF_CMD_DESC` entry has an `anf_<cmd>` function** (intact, 0 missing).
+- Smoke (non-destructive): `encode test` → `dGVzdA==`, `hash abc` → `90015098...`.
+- Launcher: `anf-cyber hash abc` → correct MD5; `anf-cyber help` → **C2 Framework** category shown.
 
-### Konservatif
-- Arsip asli di `ANF-cyber-modules-v1.6/` **tidak diubah** (tetap satu-satunya sumber kebenaran).
-- ANF Research Shell (v1.6.1, `ANF-Research-Shell/` & `security-lab/`) **tidak disentuh**.
-- Command berbahaya (autopwn, suricata real, priv-esc, persist) tidak dieksekusi oleh gate verifikasi.
+### Conservative
+- The original archive in `ANF-cyber-modules-v1.6/` was **not modified** (it remains the single source of truth).
+- ANF Research Shell (v1.6.1, `ANF-Research-Shell/` & `security-lab/`) was **not touched**.
+- Dangerous commands (autopwn, real suricata, priv-esc, persist) are not executed by the verification gate.
 
 ---
 
-## Sejarah pra-split (ringkas; sumber `ANF-Research-Shell/docs/CHANGELOG.md`)
-- **v15.0.0-RESEARCH** — merge v12 ∪ v14 (61 fungsi operasional v12 + hardening v14).
-- **v1.0.0 – v1.6.1 ANF** — rebrand, studi enterprise/research, lalu split cyber (2026-09-07).
+## Pre-split history (brief; source `ANF-Research-Shell/docs/CHANGELOG.md`)
+- **v15.0.0-RESEARCH** — merge of v12 ∪ v14 (61 operational functions from v12 + v14 hardening).
+- **v1.0.0 – v1.6.1 ANF** — rebrand, enterprise/research study, then the cyber split (2026-09-07).

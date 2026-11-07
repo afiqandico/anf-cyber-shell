@@ -2,30 +2,30 @@
 
 **ANF Cyber Shell** (Purple-Team / Cyber-Operations Zsh Workbench)
 
-## Penulis
-- **Afiq Andico Pangimpian** (Independent Researcher) — satu-satunya penulis.
+## Author
+- **Afiq Andico Pangimpian** (Independent Researcher) — sole author.
 
-## Pengembangan & AI disclosure
-- Seluruh kode (zsh, shell) dan dokumentasi di repositori ini ditulis sendiri
-  oleh penulis dengan bantuan asisten AI (Hermes, model DeepSeek V4 Flash)
-  sebagai alat pengembangan — sesuai kebijakan AI disclosure pada README.
-- Project ini dibangun ulang (**rebuilt standalone**) dari arsip
+## Development & AI disclosure
+- All code (zsh, shell) and documentation in this repository was written by the
+  author with the help of AI assistants (Hermes, DeepSeek V4 Flash model)
+  as development tooling — in line with the AI disclosure policy in the README.
+- This project was rebuilt (**rebuilt standalone**) from the archive
   `ANF-cyber-modules-v1.6/anf_research_shell_v1.6.0_FULL_local.zsh`
-  (snapshot v1.6.0 pra-split berisi modul cyber lengkap), setelah modul cyber
-  dipisah dari **ANF Research Shell** pada 2026-09-07. Script inti diturunkan
-  verbatim dari karya penulis sendiri; tidak ada konten pihak ketiga disalin.
-  Lihat `docs/CHANGELOG.md`.
+  (the pre-split v1.6.0 snapshot holding the complete cyber modules), after the cyber
+  modules were separated from **ANF Research Shell** on 2026-09-07. The core script is derived
+  verbatim from the author's own work; no third-party content was copied.
+  See `docs/CHANGELOG.md`.
 
 ## Copyright
-- Kode dilisensikan **MIT** (lihat `LICENSE`).
+- The code is licensed **MIT** (see `LICENSE`).
 
-## ⚠️ DISCLAIMER KEAMANAN
-- Tools di repositori ini (C2 framework, autopwn, password-spray, pivot,
-  persistence, OSINT, dsb.) berorientasi **purple-team / riset deteksi** dan
-  **hanya untuk digunakan di lingkungan yang Anda izinkan** (lab sendiri,
-  CTF, scope engagement resmi). Penyalahgunaan terhadap sistem tanpa izin
-  dapat melanggar hukum (UU ITE / Computer Fraud and Abuse Act, dst.).
-  Penulis tidak bertanggung jawab atas penggunaan yang tidak sah.
-- Command yang berbahaya secara inheren (nuclei/autopwn, suricata real,
-  priv-esc, persist) **TIDAK dieksekusi oleh gate verifikasi** dan sebaiknya
-  hanya dijalankan di lab/lingkungan terisolasi.
+## ⚠️ SECURITY DISCLAIMER
+- The tools in this repository (C2 framework, autopwn, password-spray, pivot,
+  persistence, OSINT, etc.) are oriented toward **purple-team / detection research** and
+  **are only for use in environments you are authorised to use** (your own lab,
+  CTF, official engagement scope). Misuse against systems without permission
+  may break the law (UU ITE / Computer Fraud and Abuse Act, etc.).
+  The author accepts no liability for unauthorised use.
+- Inherently dangerous commands (nuclei/autopwn, real suricata,
+  priv-esc, persist) are **NOT executed by the verification gate** and should
+  only be run in a lab/isolated environment.
