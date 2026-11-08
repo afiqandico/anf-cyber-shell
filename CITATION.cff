@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "ANF Shell: an auditable zsh workbench for security workflows"
+type: software
+authors:
+  - family-names: Pangimpian
+    given-names: Afiq Andico
+    email: afiqandico13@gmail.com
+repository-code: https://github.com/afiqandico/anf-cyber-shell
+license: MIT
+date-released: 2026-11-07
+abstract: >-
+  Zsh workbench that puts a security workflow behind one auditable dispatcher.
